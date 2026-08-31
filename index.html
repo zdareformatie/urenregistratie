@@ -20746,7 +20746,36 @@ function parseExcelCSV(text){
     cm[cn].id=newId;
   });
   entries.forEach(function(e){if(e.cursistId&&cnToId[e.cursistId]!=null)e.cursistId=cnToId[e.cursistId];});
-  return{entries,cursisten:Object.values(cm)};}
+  // Some real-world exports carry a separate day-level "Reizen - X" row for
+  // travel, instead of putting km/reistijd directly on the activity row.
+  // Real exports show this row never has its own Cursist and its
+  // omschrijving is just the route driven ("Van A naar B naar C en
+  // retour") - not the activity's own description. When a day has exactly
+  // ONE non-travel activity, the travel clearly belongs to it, so fold the
+  // reisUren/km into that single entry for one clean row instead of two the
+  // worker has to mentally reconnect later. When a day has 2+ activities,
+  // deliberately do NOT guess which one the trip was for - a multi-stop
+  // route serving several visits that day has no reliable way to be split
+  // per activity, and a wrong guess would misattribute real travel time to
+  // the wrong contact. Those days keep their Reizen row separate, same as
+  // before.
+  var byDate={};
+  entries.forEach(function(e){(byDate[e.datum]=byDate[e.datum]||[]).push(e);});
+  var fusedOutIds={};
+  Object.keys(byDate).forEach(function(d){
+    var dayEntries=byDate[d];
+    var travelRows=dayEntries.filter(function(e){return e.isAutoTravel;});
+    var otherRows=dayEntries.filter(function(e){return !e.isAutoTravel;});
+    if(!travelRows.length||otherRows.length!==1)return;
+    var target=otherRows[0];
+    travelRows.forEach(function(tr){
+      target.reisUren=(parseFloat(target.reisUren)||0)+(parseFloat(tr.reisUren)||0);
+      target.km=(parseFloat(target.km)||0)+(parseFloat(tr.km)||0);
+      fusedOutIds[tr.id]=true;
+    });
+  });
+  var fusedEntries=entries.filter(function(e){return !fusedOutIds[e.id];});
+  return{entries:fusedEntries,cursisten:Object.values(cm)};}
 function parseAppCSV(text){const lines=text.split('\n').filter(l=>l.trim());if(!lines.length)return{entries:[],cursisten:[]};const headers=parseCSVLine(lines[0]);const col=k=>headers.findIndex(h=>h.toLowerCase().includes(k.toLowerCase()));const iDatum=col('datum'),iCat=col('categorie'),iUren=col('uren'),iKm=col('km'),iKosten=col('kosten'),iOmsch=col('omschrijving'),iCursist=col('cursist'),iThema=col('thema'),iThemacode=col('themacode'),iOpmerking=col('opmerking'),iReminder=col('reminder');const entries=[];lines.slice(1).forEach((line,i)=>{const cols=parseCSVLine(line);const datum=(cols[iDatum]||'').trim(),categorie=(cols[iCat]||'').trim();if(!datum&&!categorie)return;
   // Guard against a semicolon-delimited file slipping past detectDossierCsvType
   // and landing here anyway: parseCSVLine only splits on commas, so a
