@@ -15601,13 +15601,20 @@ function saveQuickLogContact(cuId){
   // carry along even if the "full entry" section was used to log something
   // else, since contactMethodInfo() only ever reads it on that category.
   if(categorie==='Tel./WhatsApp contact')newEntry.contactMethod=methodEl&&methodEl.value?methodEl.value:'call';
-  // WhatsApp quick-logs otherwise leave omschrijving blank (the timeline row
-  // shows the "Tel./WhatsApp contact" label instead, not omschrijving), which
-  // means the spreadsheet's Omschrijving column and other omschrijving-based
-  // views show nothing for these rows unless a note was typed. Give WhatsApp
-  // entries a sensible default description so they're never blank there,
-  // without overriding an actually-typed opmerking.
-  if(categorie==='Tel./WhatsApp contact'&&newEntry.contactMethod==='whatsapp'&&!newEntry.opmerking)newEntry.omschrijving='Follow up bericht/gesprek';
+  // Quick call/WhatsApp logs otherwise leave omschrijving blank (the timeline
+  // row shows the "Tel./WhatsApp contact" label instead, not omschrijving),
+  // which means the spreadsheet's Omschrijving column and other
+  // omschrijving-based views show nothing for these rows unless a note was
+  // typed. Give both methods a sensible, contact-named default description
+  // so they're never blank there, without overriding an actually-typed
+  // opmerking.
+  if(categorie==='Tel./WhatsApp contact'&&!newEntry.opmerking){
+    if(newEntry.contactMethod==='whatsapp'){
+      newEntry.omschrijving=(LANG==='en'?'Message sent to ':LANG==='es'?'Mensaje enviado a ':LANG==='fr'?'Message envoyé à ':LANG==='de'?'Nachricht gesendet an ':LANG==='ro'?'Mesaj trimis către ':LANG==='hu'?'Üzenet küldve: ':LANG==='ru'?'Сообщение отправлено: ':LANG==='it'?'Messaggio inviato a ':LANG==='pt'?'Mensagem enviada a ':'Bericht sturen aan ')+cu.naam;
+    }else{
+      newEntry.omschrijving=(LANG==='en'?'Call with ':LANG==='es'?'Llamada con ':LANG==='fr'?'Appel avec ':LANG==='de'?'Anruf mit ':LANG==='ro'?'Apel cu ':LANG==='hu'?'Telefonhívás: ':LANG==='ru'?'Звонок с ':LANG==='it'?'Chiamata con ':LANG==='pt'?'Ligação com ':'Tel gesprek met ')+cu.naam;
+    }
+  }
   db.entries.unshift(newEntry);
   save();
   closeModals();
