@@ -11440,6 +11440,23 @@ async function applyRestoredBackupData(data){
       if(!newIds[id]) recordTombstone(coll, isNaN(id)?id:Number(id));
     });
   });
+  // A restore is a deliberate, explicit "these records exist now" - so any
+  // earlier tombstone for an id the restore just reintroduced must be
+  // cleared, or the very next Drive sync (loadFromDrive, or any syncToDrive
+  // call that isn't forceOverwrite) runs mergeArraysById() against a
+  // tombstone list that still marks that id as deleted, and silently filters
+  // the "restored" record straight back out again - restore appears to work
+  // for a moment, then the data vanishes on the next sync. Most common real
+  // trigger: doing "Delete all data" (which tombstones every id) right
+  // before restoring a backup whose entries reuse those same ids.
+  var restoredIds={};
+  ID_COLLS.forEach(function(coll){
+    restoredIds[coll]={};
+    (db[coll]||[]).forEach(function(rec){ if(rec&&rec.id!=null) restoredIds[coll][rec.id]=true; });
+  });
+  db.tombstones=(db.tombstones||[]).filter(function(ts){
+    return !(ts&&ts.coll&&restoredIds[ts.coll]&&restoredIds[ts.coll][ts.id]);
+  });
   if(data.settings)Object.assign(db.settings,data.settings);
   migrateCategoryLabels();
   migrateThemaOmschrijvingBug();
@@ -11728,7 +11745,12 @@ function saveSettings(){if(_suppressSettingsChange)return;const s=db.settings;s.
   save();startReminderTimer();applyWorkRoleVisibility();try{if(s.reminderOn&&typeof Notification!=='undefined'&&Notification.permission==='default')Notification.requestPermission();}catch(e){}}
 
 // DEMO DATA GENERATOR
-function loadDemoData(){
+// UNUSED - this file ended up with three separate loadDemoData() definitions
+// from edits over time; only the LAST one in the file (search for it) ever
+// actually runs, since a later same-named function silently shadows earlier
+// ones in classic (non-module) scripts. Renamed instead of deleted so the
+// file's line numbers/history stay stable; safe to ignore.
+function loadDemoData_legacy1(){
   if(db.entries.length>0){if(!confirm(tMap({nl:'Huidige data overschrijven met demo data?',en:'Overwrite current data with demo data?',es:'¿Sobrescribir los datos actuales con datos de demostración?',fr:'Remplacer les données actuelles par des données de démonstration ?',de:'Aktuelle Daten mit Demodaten überschreiben?',ro:'Suprascrieți datele curente cu date demonstrative?',hu:'Felülírja a jelenlegi adatokat demóadatokkal?',ru:'Заменить текущие данные демо-данными?',it:'Sovrascrivere i dati attuali con dati demo?',pt:'Substituir os dados atuais por dados de demonstração?'})))return;}
   var yr=new Date().getFullYear();
   var id=2000;
@@ -14014,7 +14036,9 @@ let draft={},wizStep=0;
 const WIZ=['type','cursist','details','thema_details','tijd','travelRelated','travel','notities','klaar'];
 
 
-function loadDemoData(){
+// UNUSED - see the comment above loadDemoData_legacy1 further up the file;
+// this was the second of three duplicate definitions and never actually ran.
+function loadDemoData_legacy2(){
   if(!confirm(t('welcome_demo_confirm')||'Load demo data?')) return;
   var today=new Date();
   var fmt=function(d){return ymdLocal(d);};
@@ -20507,7 +20531,64 @@ function confirmPdfImportReview(){
   if(typeof screen!=='undefined'&&screen==='cursisten')renderCursisten();
   showImportResult('✓ '+names.length+' '+tMap({nl:'contact(en) toegevoegd uit PDF!',en:'contact(s) added from PDF!',es:'contacto(s) añadidos desde el PDF!'}));
 }
-function parseExcelCSV(text){text=text.replace(/"Uren-\ncriterium"/g,'Urencriterium');const lines=text.split('\n');const hi=lines.findIndex(l=>l.includes('UrenCategorie'));if(hi<0)return{entries:[],cursisten:[]};const headers=parseCSVLine(lines[hi]);const col=k=>headers.findIndex(h=>h.trim().toLowerCase()===k.toLowerCase());const iDatum=col('Datum'),iCat=col('UrenCategorie'),iAard=col('Aard'),iUren=col('Aantal uren'),iKm=col("Km's"),iCursistNr=col('Cursistnr.'),iCursist=col('Cursist'),iThemacode=col('Themacode'),iThema=col('Thema'),iOmsch=col('Omschrijving werkzaamheden');const entries=[],cm={};lines.slice(hi+1).forEach((line,i)=>{if(!line.trim())return;const cols=parseCSVLine(line);const dr=(cols[iDatum]||'').trim(),cat=(cols[iCat]||'').trim();if(!dr||!cat)return;let datum=dr;if(dr.includes('/')){const p=dr.split('/');let y=p[2]||'';if(y.length===2)y='20'+y;datum=`${y}-${(p[1]||'').padStart(2,'0')}-${(p[0]||'').padStart(2,'0')}`;}const ur=(cols[iUren]||'').trim().replace(/\s/g,''),kr=(cols[iKm]||'').trim().replace(/\s/g,''),cn=(cols[iCursistNr]||'').trim(),cNm=(cols[iCursist]||'').trim();entries.push({id:Date.now()+i,datum,categorie:cat,aard:(cols[iAard]||'').trim(),omschrijving:(cols[iOmsch]||'').trim(),uren:ur?parseFloat(ur):'',km:kr?parseFloat(kr):'',cursistId:cn,cursistNaam:cNm,themacode:(cols[iThemacode]||'').trim(),thema:(cols[iThema]||'').trim(),opmerking:'',reminder:'',isAutoTravel:cat.startsWith('Reizen')});if(cn&&cNm&&!cm[cn])cm[cn]={id:cn,naam:cNm,adres:'',plaats:'',tel:'',opmerking:''};});
+function parseExcelCSV(text){
+  // Real-world "UrenCategorie" exports come from Excel, and Excel's CSV
+  // export delimiter follows the OS locale: US/UK locales use comma, but
+  // Dutch (and most EU) locales use semicolon - because Dutch Excel uses
+  // a COMMA as the decimal separator (e.g. "1,50" uur), so comma can't
+  // also be the column delimiter. This importer originally assumed comma
+  // only (via parseCSVLine), so any semicolon-delimited Dutch export
+  // collapsed into a single unparseable "column" per row, every iDatum/
+  // iCat lookup failed, every row was silently skipped, and the user saw
+  // "Geen activiteiten gevonden" no matter what they imported. Detect the
+  // real delimiter from the header row instead of assuming comma, and use
+  // parseCSVFull (quote+newline aware) instead of a naive line-split so
+  // the multi-line quoted "Uren-\ncriterium" header cell is handled
+  // properly for either delimiter.
+  const rawLines=text.split('\n');
+  const hiRaw=rawLines.findIndex(l=>l.includes('UrenCategorie'));
+  if(hiRaw<0)return{entries:[],cursisten:[]};
+  const hdrLine=rawLines[hiRaw];
+  const semiCount=(hdrLine.match(/;/g)||[]).length,commaCount=(hdrLine.match(/,/g)||[]).length;
+  const delim=semiCount>=commaCount?';':',';
+  const rows=parseCSVFull(text,delim);
+  const hi=rows.findIndex(r=>r.some(c=>(c||'').includes('UrenCategorie')));
+  if(hi<0)return{entries:[],cursisten:[]};
+  const headers=rows[hi].map(h=>(h||'').replace(/\n/g,' ').trim());
+  const col=k=>headers.findIndex(h=>h.toLowerCase()===k.toLowerCase());
+  const iDatum=col('Datum'),iCat=col('UrenCategorie'),iAard=col('Aard'),iUren=col('Aantal uren'),iKm=col("Km's"),iCursistNr=col('Cursistnr.'),iCursist=col('Cursist'),iThemacode=col('Themacode'),iThema=col('Thema'),iOmsch=col('Omschrijving werkzaamheden');
+  function pad2(s){return String(s||'').padStart(2,'0');}
+  function toIsoDatum(dr){
+    // Handles both "DD/MM/YY(YY)" and the Dutch "DD-MM-YY(YY)" style seen
+    // in real exports - but a value already in the app's own "YYYY-MM-DD"
+    // form (4-digit first segment) is left untouched.
+    const sep=dr.includes('/')?'/':(dr.includes('-')?'-':null);
+    if(!sep)return dr;
+    const p=dr.split(sep);
+    if(p.length!==3)return dr;
+    if(p[0].length===4)return p[0]+'-'+pad2(p[1])+'-'+pad2(p[2]);
+    let y=p[2]||'';if(y.length===2)y='20'+y;
+    return y+'-'+pad2(p[1])+'-'+pad2(p[0]);
+  }
+  function numVal(s){
+    // Dutch locale numbers use a comma decimal separator ("1,50") and a
+    // lone "-" (or blank) for zero - parseFloat alone would truncate
+    // "1,50" to 1, silently losing the fraction.
+    const v=String(s||'').trim();
+    if(!v||v==='-')return '';
+    const f=parseFloat(v.replace(/\s/g,'').replace(',','.'));
+    return isNaN(f)?'':f;
+  }
+  const entries=[],cm={};
+  rows.slice(hi+1).forEach((cols,i)=>{
+    if(!cols||!cols.length)return;
+    const dr=(cols[iDatum]||'').trim(),cat=(cols[iCat]||'').trim();
+    if(!dr||!cat)return;
+    const datum=toIsoDatum(dr);
+    const cn=(cols[iCursistNr]||'').trim(),cNm=(cols[iCursist]||'').trim();
+    entries.push({id:Date.now()+i,datum,categorie:cat,aard:(cols[iAard]||'').trim(),omschrijving:(cols[iOmsch]||'').trim(),uren:numVal(cols[iUren]),km:numVal(cols[iKm]),cursistId:cn,cursistNaam:cNm,themacode:(cols[iThemacode]||'').trim(),thema:(cols[iThema]||'').trim(),opmerking:'',reminder:'',isAutoTravel:cat.startsWith('Reizen')});
+    if(cn&&cNm&&!cm[cn])cm[cn]={id:cn,naam:cNm,adres:'',plaats:'',tel:'',opmerking:''};
+  });
   // cn (the raw "Cursistnr." column value, e.g. "1", "2"...) was used
   // directly as the contact's id above. That's fine within a single
   // import, but a second Excel/legacy report - whose own Cursistnr. column
@@ -21139,7 +21220,12 @@ function openDuplicatesModal(){
     h+='<div style="border:1px solid var(--border);border-radius:var(--r-sm);margin:8px 0;font-size:12px">';
     groups.forEach(function(g){
       var e=g[0];
-      h+='<div style="padding:7px 10px;border-bottom:1px solid var(--border)"><b>'+(e.datum||'')+'</b> \u00b7 '+(e.categorie?getCatLabel(e.categorie):'')+' \u00b7 '+(e.cursistNaam||'')+' \u00b7 '+(parseFloat(e.uren)||0)+t('hours_abbr')+' <span style="color:var(--text3)">\u00d7'+g.length+'</span></div>';
+      // Include omschrijving (and opmerking, if any) so the copy actually
+      // being offered for bulk removal can be recognized at a glance instead
+      // of just trusted blind - a bare date/category/hours line looks the
+      // same whether the match behind it is a genuine repeat or a coincidence.
+      var descBit=(e.omschrijving||e.opmerking)?(' \u00b7 '+(e.omschrijving||e.opmerking)):'';
+      h+='<div style="padding:7px 10px;border-bottom:1px solid var(--border)"><b>'+(e.datum||'')+'</b> \u00b7 '+(e.categorie?getCatLabel(e.categorie):'')+' \u00b7 '+(e.cursistNaam||'')+' \u00b7 '+(parseFloat(e.uren)||0)+t('hours_abbr')+descBit+' <span style="color:var(--text3)">\u00d7'+g.length+'</span></div>';
     });
     h+='</div>';
     h+='<button class="btn full danger" onclick="removeDuplicateEntries()">'+removeLabel+'</button>';
@@ -21279,14 +21365,29 @@ function removeDuplicateEntries(){
     // tombstone the rest, same as any other delete, so a stale copy still
     // sitting on another un-synced device doesn't just bring the duplicate
     // straight back on the next sync.
-    var sorted=g.slice().sort(function(a,b){return (b._upd||0)-(a._upd||0)||(a.id>b.id?1:-1);});
+    // EXCEPTION: real backup data showed groups where cursistId is the only
+    // thing NOT covered by dupeEntryKeyExact, and it differs between copies
+    // because one side still carries a stale/legacy id (e.g. a raw
+    // "Cursistnr." from an old CSV import) that no longer resolves to any
+    // contact, while the other has the real, current contact id. Picking
+    // purely by recency then silently kept the broken link and threw away
+    // the working one. Prefer a copy whose cursistId actually resolves to an
+    // existing contact, and only fall back to the recency/id rule among (or
+    // absent) those.
+    var withValidLink=g.filter(function(e){return e.cursistId&&db.cursisten.some(function(c){return String(c.id)===String(e.cursistId);});});
+    var pool=withValidLink.length?withValidLink:g;
+    var sorted=pool.slice().sort(function(a,b){return (b._upd||0)-(a._upd||0)||(a.id>b.id?1:-1);});
     var keep=sorted[0];
-    sorted.slice(1).forEach(function(dupe){
+    // Removal candidates are everything in the ORIGINAL group g except keep -
+    // not sorted.slice(1), which is only the (possibly smaller) valid-link
+    // pool above and would leave any invalid-link copies neither tombstoned
+    // nor removed.
+    var rest=g.filter(function(e){return e!==keep;});
+    rest.forEach(function(dupe){
       recordTombstone('entries',dupe.id);
     });
-    var keepId=keep.id;
     var removeIds={};
-    sorted.slice(1).forEach(function(dupe){removeIds[dupe.id]=true;});
+    rest.forEach(function(dupe){removeIds[dupe.id]=true;});
     db.entries=db.entries.filter(function(e){return e===keep||!removeIds[e.id];});
   });
   save();
@@ -28963,27 +29064,116 @@ function toggleLessonCell(cursistId, lesCode){
 }
 
 
+// This is the one real loadDemoData() - the other two definitions in this
+// file (loadDemoData_legacy1/2) are dead code left over from earlier edits;
+// see the comment above loadDemoData_legacy1 for why. Expanded from 3
+// contacts/5 entries to a full year of activity across every part of the
+// app - contacts at every stage of the contact-to-member journey, planned
+// activities, to-do list, prayer list - so "Load demo data" actually shows
+// what the app can do instead of a nearly-empty screen.
 function loadDemoData(){
-  var today = new Date();
-  function daysAgo(n){var d=new Date(today);d.setDate(d.getDate()-n);return ymdLocal(d);}
-  db.cursisten = db.cursisten||[];
-  db.entries = db.entries||[];
-  // Demo contacts
-  var c1 = {id:1001,naam:'Jan de Vries',type:'cursist',adres:'Kerkstraat 12',plaats:'Amsterdam',tel:'0612345678',opmerking:''};
-  var c2 = {id:1002,naam:'Maria Lopez',type:'cursist',adres:'Bloemweg 5',plaats:'Rotterdam',tel:'0698765432',opmerking:''};
-  var c3 = {id:1003,naam:'Pieter Bakker',type:'lid',adres:'Dorpsplein 3',plaats:'Utrecht',tel:'0645678901',opmerking:''};
-  db.cursisten.push(c1,c2,c3);
-  // Demo logboek entries
-  db.entries.push(
-    {id:2001,datum:daysAgo(2),categorie:'Bijbelstudie geven',aard:'Bijbelstudie',omschrijving:'ES thema 1',thema:'ES thema 1 - Rijk zonder het te weten',themacode:'ES thema 1',cursistId:1001,cursistNaam:'Jan de Vries',uren:1.5,km:12,reisUren:0.5,opmerking:'Goede ontvangst'},
-    {id:2002,datum:daysAgo(5),categorie:'Bijbelstudie geven',aard:'Bijbelstudie',omschrijving:'KUB Les 1',thema:'KUB Les 1 - De Bijbel, de Heilige Schrift',themacode:'KUB Les 1',cursistId:1002,cursistNaam:'Maria Lopez',uren:1.25,km:8,reisUren:0.3,opmerking:''},
-    {id:2003,datum:daysAgo(7),categorie:'Pastoraal contact',aard:'Pastoraal',omschrijving:'Huisbezoek',thema:'',themacode:'',cursistId:1003,cursistNaam:'Pieter Bakker',uren:1,km:5,reisUren:0.2,opmerking:'Bemoedigend gesprek'},
-    {id:2004,datum:daysAgo(10),categorie:'Evangelisatie',aard:'Evangelisatie',omschrijving:'Kramenstand markt',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:3,km:0,reisUren:0,opmerking:'5 gesprekken'},
-    {id:2005,datum:daysAgo(14),categorie:'Vergaderen',aard:'Organisatie',omschrijving:'Teamvergadering',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:2,km:20,reisUren:0.5,opmerking:''}
-  );
+  var hasData=(db.entries&&db.entries.length)||(db.cursisten&&db.cursisten.length)||(db.planned&&db.planned.length)||(db.todos&&db.todos.length)||(db.prayers&&db.prayers.length);
+  if(hasData&&!confirm(tMap({nl:'Huidige data overschrijven met demo data?',en:'Overwrite current data with demo data?',es:'¿Sobrescribir los datos actuales con datos de demostración?',fr:'Remplacer les données actuelles par des données de démonstration ?',de:'Aktuelle Daten mit Demodaten überschreiben?',ro:'Suprascrieți datele curente cu date demonstrative?',hu:'Felülírja a jelenlegi adatokat demóadatokkal?',ru:'Заменить текущие данные демо-данными?',it:'Sovrascrivere i dati attuali con dati demo?',pt:'Substituir os dados atuais por dados de demonstração?'})))return;
+
+  ensurePlanned();
+  var today=new Date();
+  function addDays(base,n){var d=new Date(base);d.setDate(d.getDate()+n);return d;}
+  function fmt(d){return ymdLocal(d);}
+
+  // ---- Contacts: one at every stage of the contact->member journey, plus
+  // the demographic tags (youth/elderly/child) and the less common fields
+  // (extra care, paused, another worker's responsibility) so the Contacts
+  // tab, its groupings and the Follow-up card all have something real. ----
+  var cid=9001;
+  var cThomas={id:cid++,naam:'Thomas van Berg',voornaam:'Thomas',achternaam:'van Berg',type:'cursist',adres:'Bergstraat 12',postcode:'3512 AB',plaats:'Utrecht',land:'Nederland',tel:'06-12345678',contactFrequency:'weekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'beginner',highlightsGeschiedenis:'',opmerking:'Geïnteresseerd in de sabbat',doopkandidaat:false,personTypes:['interested'],personType:'interested',gemeente:'',status:'actief'};
+  var cMiriam={id:cid++,naam:'Miriam Santos',voornaam:'Miriam',achternaam:'Santos',type:'cursist',adres:'Rozenstraat 5',postcode:'3021 CD',plaats:'Rotterdam',land:'Nederland',tel:'06-87654321',contactFrequency:'weekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'gevorderd',highlightsGeschiedenis:'Bijna klaar met de studiereeks, wil zich laten dopen.',opmerking:'Vragen over het avondmaal',doopkandidaat:false,personTypes:['student'],personType:'student',gemeente:'',status:'actief'};
+  var cAnna={id:cid++,naam:'Anna de Groot',voornaam:'Anna',achternaam:'de Groot',type:'cursist',adres:'Molenweg 8',postcode:'1017 AB',plaats:'Amsterdam',land:'Nederland',tel:'06-22334455',contactFrequency:'biweekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'gevorderd',highlightsGeschiedenis:'',opmerking:'Komt sinds kort elke sabbat',doopkandidaat:false,personTypes:['sabbath'],personType:'sabbath',gemeente:'Immanuel Gemeente',status:'actief'};
+  var cRobert={id:cid++,naam:'Robert Jansen',voornaam:'Robert',achternaam:'Jansen',type:'cursist',adres:'Kerkplein 3',postcode:'2011 CD',plaats:'Haarlem',land:'Nederland',tel:'06-33445566',contactFrequency:'weekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'gevorderd',highlightsGeschiedenis:'Doopdatum gepland voor volgend kwartaal.',opmerking:'',doopkandidaat:true,personTypes:['doop'],personType:'doop',gemeente:'Immanuel Gemeente',status:'actief'};
+  var cElisabeth={id:cid++,naam:'Elisabeth Mulder',voornaam:'Elisabeth',achternaam:'Mulder',type:'lid',adres:'Dorpsstraat 21',postcode:'3811 AB',plaats:'Amersfoort',land:'Nederland',tel:'06-44556677',contactFrequency:'quarterly',extraZorg:false,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:'',doopkandidaat:false,personTypes:['lid'],personType:'lid',gemeente:'Immanuel Gemeente',status:'actief'};
+  var cDaniel={id:cid++,naam:'Daniël Visser',voornaam:'Daniël',achternaam:'Visser',type:'lid',adres:'Schoolstraat 9',postcode:'7511 AB',plaats:'Enschede',land:'Nederland',tel:'06-55667788',contactFrequency:'monthly',extraZorg:false,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:'',doopkandidaat:false,personTypes:['jeugd','lid'],personType:'jeugd',gemeente:'Hoop Gemeente',status:'actief'};
+  var cCornelia={id:cid++,naam:'Cornelia Bakker',voornaam:'Cornelia',achternaam:'Bakker',type:'lid',adres:'Julianalaan 44',postcode:'7521 CD',plaats:'Enschede',land:'Nederland',tel:'06-66778899',contactFrequency:'biweekly',extraZorg:true,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'Slecht ter been, waardeert huisbezoek erg.',opmerking:'',doopkandidaat:false,personTypes:['elderly','lid'],personType:'elderly',gemeente:'Hoop Gemeente',status:'actief'};
+  var cDavid={id:cid++,naam:'David Kowalski',voornaam:'David',achternaam:'Kowalski',type:'cursist',adres:'Kerkweg 3',postcode:'1096 AB',plaats:'Amsterdam',land:'Nederland',tel:'06-11223344',contactFrequency:'monthly',extraZorg:true,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:'',doopkandidaat:false,personTypes:['contact'],personType:'contact',gemeente:'',status:'actief'};
+  var cSarah={id:cid++,naam:'Sarah de Boer',voornaam:'Sarah',achternaam:'de Boer',type:'cursist',adres:'Lindelaan 17',postcode:'2311 AB',plaats:'Leiden',land:'Nederland',tel:'06-77889900',contactFrequency:'',extraZorg:false,andereWerker:true,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:'Wordt momenteel vooral door een andere werker bezocht.',doopkandidaat:false,personTypes:['contact'],personType:'contact',gemeente:'',status:'gepauzeerd'};
+  var cLucas={id:cid++,naam:'Lucas de Wit',voornaam:'Lucas',achternaam:'de Wit',type:'lid',adres:'Julianalaan 44',postcode:'7521 CD',plaats:'Enschede',land:'Nederland',tel:'',contactFrequency:'',extraZorg:false,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:'Kind van Cornelia',doopkandidaat:false,personTypes:['child'],personType:'child',gemeente:'Hoop Gemeente',status:'actief'};
+  db.cursisten=[cThomas,cMiriam,cAnna,cRobert,cElisabeth,cDaniel,cCornelia,cDavid,cSarah,cLucas];
+
+  // ---- Logbook entries: a full year of activity spread across every
+  // category (study, visits, calls, travel, admin, meetings, evangelism,
+  // committee, absence), so Rapport's category chart, the year calendar and
+  // every contact's history have something in every month, not just the
+  // last few weeks. ----
+  var entries=[];
+  var studyContacts=[cThomas,cMiriam,cAnna,cRobert];
+  var themas=[['KUB Les 1','De Bijbel, de Heilige Schrift'],['KUB Les 2','Wie is God?'],['KUB Les 3','De grote strijd'],['ES thema 1','Rijk zonder het te weten'],['ES thema 2','De sabbat'],['ES thema 3','Het onderzoekend oordeel']];
+  var themaIdx=0;
+  function nextThema(){var th=themas[themaIdx%themas.length];themaIdx++;return th;}
+  for(var w=51;w>=0;w--){
+    var wk=addDays(today,-7*w);
+    var stu=studyContacts[w%studyContacts.length];
+    var th=nextThema();
+    entries.push({datum:fmt(addDays(wk,-2)),tijd:'19:00',categorie:'Bijbelstudie geven',aard:'Bijbelstudie',omschrijving:th[0]+' - '+th[1],thema:th[0]+' - '+th[1],themacode:th[0],cursistId:stu.id,cursistNaam:stu.naam,themaCompleted:true,uren:1.25,km:9,reisUren:0.3,opmerking:''});
+    var callTargets=[cDavid,cElisabeth,cDaniel,cCornelia,cSarah];
+    var callC=callTargets[w%callTargets.length];
+    entries.push({datum:fmt(addDays(wk,-4)),tijd:'20:15',categorie:'Tel./WhatsApp contact',aard:'Gemeentebediening',omschrijving:'',thema:'',themacode:'',cursistId:callC.id,cursistNaam:callC.naam,uren:0.25,km:0,reisUren:0,opmerking:''});
+    if(w%2===0){
+      var visitTargets=[cCornelia,cDavid,cRobert];
+      var visitC=visitTargets[Math.floor(w/2)%visitTargets.length];
+      entries.push({datum:fmt(addDays(wk,-1)),tijd:'14:00',categorie:'Bezoek',aard:'Gemeentebediening',omschrijving:'',thema:'',themacode:'',cursistId:visitC.id,cursistNaam:visitC.naam,uren:1,km:14,reisUren:0.4,opmerking:''});
+      entries.push({datum:fmt(addDays(wk,-1)),tijd:'',categorie:'Vervoer',aard:'Vervoer',omschrijving:'Naar '+visitC.plaats,thema:'',themacode:'',cursistId:visitC.id,cursistNaam:visitC.naam,uren:0.4,km:14,reisUren:0.4,opmerking:''});
+    }
+    if(w%3===0){
+      var pcTargets=[cThomas,cMiriam,cSarah];
+      var pc=pcTargets[Math.floor(w/3)%pcTargets.length];
+      entries.push({datum:fmt(wk),tijd:'',categorie:'Pastoraal contact',aard:'Gemeentebediening',omschrijving:'',thema:'',themacode:'',cursistId:pc.id,cursistNaam:pc.naam,uren:0.75,km:0,reisUren:0,opmerking:''});
+    }
+    if(w%4===0){
+      entries.push({datum:fmt(addDays(wk,3)),tijd:'',categorie:'Administratie',aard:'Organisatie',omschrijving:'Rapportage bijwerken',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:1,km:0,reisUren:0,opmerking:''});
+      entries.push({datum:fmt(addDays(wk,3)),tijd:'19:30',categorie:'Vergaderen',aard:'Organisatie',omschrijving:'Teamvergadering',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:1.5,km:18,reisUren:0.4,opmerking:''});
+      entries.push({datum:fmt(addDays(wk,5)),tijd:'',categorie:'Evangeliseren extern',aard:'Evangelisatie',omschrijving:'Kramenstand',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:2.5,km:0,reisUren:0,opmerking:'5 gesprekken'});
+    }
+    if(w%13===0){
+      entries.push({datum:fmt(addDays(wk,2)),tijd:'',categorie:'Commissie voorbereiden',aard:'Commissie',omschrijving:'',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:1,km:0,reisUren:0,opmerking:''});
+    }
+  }
+  entries.push({datum:fmt(addDays(today,-200)),categorie:'Feestdag (NL)',aard:'Afwezigheid',omschrijving:'',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:8,km:0,reisUren:0,opmerking:''});
+  entries.push({datum:fmt(addDays(today,-45)),categorie:'Ziekteverzuim',aard:'Afwezigheid',omschrijving:'',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:8,km:0,reisUren:0,opmerking:''});
+  for(var lv=0;lv<5;lv++){
+    entries.push({datum:fmt(addDays(today,-120+lv)),categorie:'Verlof',aard:'Afwezigheid',omschrijving:'',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:8,km:0,reisUren:0,opmerking:''});
+  }
+  var ids=genEntryIds(entries.length);
+  db.entries=entries.map(function(e,i){e.id=ids[i];return e;});
+
+  // ---- Planned activities: a couple upcoming, one still-open a few days
+  // after its date (to show the "did this happen?" prompt), so the
+  // calendar and the Home "Coming up" card both have something to show. ----
+  db.planned=[
+    {id:Date.now()+1,datum:fmt(addDays(today,2)),time:'19:00',categorie:'Bijbelstudie geven',cursistId:cThomas.id,cursistNaam:cThomas.naam,omschrijving:'',thema:'KUB Les 4 - De wet van God',themacode:'KUB Les 4',themaCompleted:false,uren:1.25,km:9,kosten:0,opmerking:'',completed:false,skipped:false,reminded:false},
+    {id:Date.now()+2,datum:fmt(addDays(today,5)),time:'14:00',categorie:'Bezoek',cursistId:cCornelia.id,cursistNaam:cCornelia.naam,omschrijving:'',thema:'',themacode:'',themaCompleted:true,uren:1,km:6,kosten:0,opmerking:'',completed:false,skipped:false,reminded:false},
+    {id:Date.now()+3,datum:fmt(addDays(today,-3)),time:'20:00',categorie:'Tel./WhatsApp contact',cursistId:cDavid.id,cursistNaam:cDavid.naam,omschrijving:'',thema:'',themacode:'',themaCompleted:true,uren:0.25,km:0,kosten:0,opmerking:'',completed:false,skipped:false,reminded:false}
+  ];
+
+  // ---- To-do list: mix of open/done, personal/work ----
+  var tid=Date.now();
+  db.todos=[
+    {id:tid++,text:'Nieuwe brochures bestellen',done:false,category:'work',createdAt:new Date().toISOString(),doneAt:null},
+    {id:tid++,text:'Presentatie voorbereiden voor sabbatschool',done:false,category:'work',createdAt:new Date().toISOString(),doneAt:null},
+    {id:tid++,text:'Auto laten nakijken',done:false,category:'personal',createdAt:new Date().toISOString(),doneAt:null},
+    {id:tid++,text:'Verjaardagskaart sturen naar Elisabeth',done:true,category:'work',createdAt:new Date(addDays(today,-3)).toISOString(),doneAt:new Date(addDays(today,-2)).toISOString()}
+  ];
+
+  // ---- Prayer list: active items with some prayed-day history, plus a
+  // closed one so the history modal has something to show too. ----
+  var pid=Date.now()+500;
+  db.prayers=[
+    {id:pid++,text:'Wijsheid voor de studie met Miriam',category:'work',createdAt:new Date(addDays(today,-14)).toISOString(),lastPrayedDate:fmt(addDays(today,-1)),prayedDays:[fmt(addDays(today,-1)),fmt(addDays(today,-3)),fmt(addDays(today,-6))]},
+    {id:pid++,text:'Gezondheid van Cornelia',category:'work',createdAt:new Date(addDays(today,-20)).toISOString(),lastPrayedDate:fmt(today),prayedDays:[fmt(today),fmt(addDays(today,-2)),fmt(addDays(today,-9))]},
+    {id:pid++,text:'Rust en herstel voor mijn gezin',category:'personal',createdAt:new Date(addDays(today,-30)).toISOString(),lastPrayedDate:fmt(addDays(today,-4)),prayedDays:[fmt(addDays(today,-4))]},
+    {id:pid++,text:'Doop van Robert',category:'work',createdAt:new Date(addDays(today,-60)).toISOString(),lastPrayedDate:null,prayedDays:[],status:'answered',closedAt:new Date(addDays(today,-40)).toISOString(),closedDays:15,closedTimes:6}
+  ];
+
   save();
   renderHome();
-  alert('Demo gegevens geladen! U kunt deze later verwijderen via Instellingen → Data verwijderen.');
+  alert(tMap({nl:'Demo gegevens geladen! U kunt deze later verwijderen via Instellingen → Alle gegevens wissen.',en:'Demo data loaded! You can remove it later via Settings → Clear all data.',es:'¡Datos de demostración cargados! Puede eliminarlos más tarde en Configuración → Borrar todos los datos.',fr:'Données de démonstration chargées ! Vous pouvez les supprimer plus tard via Paramètres → Effacer toutes les données.',de:'Demodaten geladen! Sie können sie später über Einstellungen → Alle Daten löschen entfernen.',ro:'Date demonstrative încărcate! Le puteți elimina mai târziu din Setări → Ștergeți toate datele.',hu:'Demóadatok betöltve! Később eltávolíthatja őket a Beállítások → Összes adat törlése menüben.',ru:'Демо-данные загружены! Вы можете удалить их позже в Настройки → Удалить все данные.',it:'Dati demo caricati! Puoi rimuoverli più tardi da Impostazioni → Cancella tutti i dati.',pt:'Dados de demonstração carregados! Você pode removê-los depois em Configurações → Apagar todos os dados.'}));
 }
 
 
