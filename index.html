@@ -11201,7 +11201,7 @@ function isDriveAuthError(e){
   var code = e.status || (e.result && e.result.error && e.result.error.code);
   return code===401||code===403;
 }
-async function syncToDrive(forceOverwrite){if(!useGoogleDrive||!accessToken){saveLocal();pulseSsSaveStatus('ok',(LANG==='en'?'Saved locally · ':LANG==='es'?'Guardado localmente · ':LANG==='fr'?'Enregistré localement · ':LANG==='de'?'Lokal gespeichert · ':LANG==='ru'?'Сохранено локально · ':'Lokaal opgeslagen · ')+new Date().toLocaleTimeString(getLocale(),{hour:'2-digit',minute:'2-digit'}));return;}setSyncStatus('info',LANG==='en'?'Saving…':LANG==='es'?'Guardando…':LANG==='fr'?'Sauvegarde…':LANG==='de'?'Speichern…':LANG==='ru'?'Сохранение…':'Opslaan…',true);try{await pullEncMetaFromDrive();if(!driveFileId){const l=await gapi.client.drive.files.list({spaces:'appDataFolder',q:`name='${DRIVE_FILE_NAME}'`,fields:'files(id)'});const f=l.result.files;if(f&&f.length)driveFileId=f[0].id;}if(driveFileId&&!forceOverwrite){var _pullOk=false;try{const rres=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{headers:{'Authorization':'Bearer '+accessToken}});if(rres.ok){const rdata=await deserializeDb(await rres.text());_pullOk=true;if(rdata&&rdata.entries){db.tombstones=mergeTombstones(db.tombstones,rdata.tombstones||[]);var _tE=tombIdsFor('entries',db.tombstones),_tP=tombIdsFor('planned',db.tombstones),_tT=tombIdsFor('todos',db.tombstones),_tPr=tombIdsFor('prayers',db.tombstones),_tCs=tombIdsFor('customStudies',db.tombstones),_tCu=tombIdsFor('cursisten',db.tombstones);db.entries=mergeArraysById(db.entries,rdata.entries,_tE);db.cursisten=mergeArraysById(db.cursisten,rdata.cursisten||[],_tCu);db.churches=mergeArraysByValue(db.churches,rdata.churches||[]);db.planned=mergeArraysById(db.planned,rdata.planned||[],_tP);db.vacationDays=mergeArraysByValue(db.vacationDays,rdata.vacationDays||[]);db.todos=mergeArraysById(db.todos,rdata.todos||[],_tT);db.prayers=mergeArraysById(db.prayers,rdata.prayers||[],_tPr);db.customStudies=mergeArraysById(db.customStudies,rdata.customStudies||[],_tCs);db.approvals=mergeArraysById(db.approvals,rdata.approvals||[]);if(rdata.settings){var _ldm=db.settings.darkMode,_lat=db.settings.appTheme,_lts=db.settings.textSize,_cc=db.settings.customCategories,_clo=db.settings.categoryLabelOverrides,_nm=db.settings.naam,_gm=db.settings.gemeente,_em=db.settings.email,_tl=db.settings.tel,_gb=db.settings.geboortedatum,_ad=db.settings.myAdres,_adp=db.settings.myAdresPostcode,_adc=db.settings.myAdresCity,_adco=db.settings.myAdresCountry,_lg=db.settings.lang,_gf=db.settings.groupFrequency;Object.assign(db.settings,rdata.settings);if(_ldm!==undefined)db.settings.darkMode=_ldm;if(_lat!==undefined)db.settings.appTheme=_lat;if(_lts!==undefined)db.settings.textSize=_lts;if(_cc)db.settings.customCategories=_cc;if(_clo)db.settings.categoryLabelOverrides=_clo;if(_nm)db.settings.naam=_nm;if(_gm)db.settings.gemeente=_gm;if(_em)db.settings.email=_em;if(_tl)db.settings.tel=_tl;if(_gb)db.settings.geboortedatum=_gb;if(_ad)db.settings.myAdres=_ad;if(_adp)db.settings.myAdresPostcode=_adp;if(_adc)db.settings.myAdresCity=_adc;if(_adco)db.settings.myAdresCountry=_adco;if(_lg)db.settings.lang=_lg;
+async function syncToDrive(forceOverwrite){if(!useGoogleDrive||!accessToken){saveLocal();pulseSsSaveStatus('ok',(LANG==='en'?'Saved locally · ':LANG==='es'?'Guardado localmente · ':LANG==='fr'?'Enregistré localement · ':LANG==='de'?'Lokal gespeichert · ':LANG==='ru'?'Сохранено локально · ':'Lokaal opgeslagen · ')+new Date().toLocaleTimeString(getLocale(),{hour:'2-digit',minute:'2-digit'}));return;}setSyncStatus('info',LANG==='en'?'Saving…':LANG==='es'?'Guardando…':LANG==='fr'?'Sauvegarde…':LANG==='de'?'Speichern…':LANG==='ru'?'Сохранение…':'Opslaan…',true);try{await pullEncMetaFromDrive();if(!driveFileId){const l=await gapi.client.drive.files.list({spaces:'appDataFolder',q:`name='${DRIVE_FILE_NAME}'`,fields:'files(id)'});const f=l.result.files;if(f&&f.length)driveFileId=f[0].id;}if(driveFileId&&!forceOverwrite){var _pullOk=false;try{const rres=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{headers:{'Authorization':'Bearer '+accessToken}});if(rres.ok){const rdata=await deserializeDb(await rres.text());_pullOk=true;if(rdata&&rdata.entries){db.tombstones=mergeTombstones(db.tombstones,rdata.tombstones||[]);var _tE=tombIdsFor('entries',db.tombstones),_tP=tombIdsFor('planned',db.tombstones),_tT=tombIdsFor('todos',db.tombstones),_tPr=tombIdsFor('prayers',db.tombstones),_tCs=tombIdsFor('customStudies',db.tombstones),_tCu=tombIdsFor('cursisten',db.tombstones);db.entries=mergeArraysById(db.entries,rdata.entries,_tE);db.cursisten=mergeArraysById(db.cursisten,rdata.cursisten||[],_tCu);db.churches=mergeArraysByValue(db.churches,rdata.churches||[]);db.planned=mergeArraysById(db.planned,rdata.planned||[],_tP);db.vacationDays=mergeArraysByValue(db.vacationDays,rdata.vacationDays||[]);db.todos=mergeArraysById(db.todos,rdata.todos||[],_tT);db.prayers=mergeArraysById(db.prayers,rdata.prayers||[],_tPr);db.customStudies=mergeArraysById(db.customStudies,rdata.customStudies||[],_tCs);db.approvals=mergeArraysById(db.approvals,rdata.approvals||[]);if(rdata.settings){var _ldm=db.settings.darkMode,_lat=db.settings.appTheme,_lts=db.settings.textSize,_cc=db.settings.customCategories,_clo=db.settings.categoryLabelOverrides,_nm=db.settings.naam,_gm=db.settings.gemeente,_em=db.settings.email,_tl=db.settings.tel,_gb=db.settings.geboortedatum,_ad=db.settings.myAdres,_adp=db.settings.myAdresPostcode,_adc=db.settings.myAdresCity,_adco=db.settings.myAdresCountry,_lg=db.settings.lang,_gf=db.settings.groupFrequency,_ddg=db.settings.dismissedDupeGroups;Object.assign(db.settings,rdata.settings);if(_ldm!==undefined)db.settings.darkMode=_ldm;if(_lat!==undefined)db.settings.appTheme=_lat;if(_lts!==undefined)db.settings.textSize=_lts;if(_cc)db.settings.customCategories=_cc;if(_clo)db.settings.categoryLabelOverrides=_clo;if(_nm)db.settings.naam=_nm;if(_gm)db.settings.gemeente=_gm;if(_em)db.settings.email=_em;if(_tl)db.settings.tel=_tl;if(_gb)db.settings.geboortedatum=_gb;if(_ad)db.settings.myAdres=_ad;if(_adp)db.settings.myAdresPostcode=_adp;if(_adc)db.settings.myAdresCity=_adc;if(_adco)db.settings.myAdresCountry=_adco;if(_lg)db.settings.lang=_lg;
       // groupFrequency is a nested key->value map (per contact-type default
       // frequency) - Object.assign only replaces it wholesale, so without
       // this it silently discarded whatever was just set locally the moment
@@ -11209,7 +11209,16 @@ async function syncToDrive(forceOverwrite){if(!useGoogleDrive||!accessToken){sav
       // instead: start from remote's map, then overlay local's on top so a
       // just-made local edit always wins on a shared key while still
       // picking up any other-device edits this device hasn't seen yet.
-      db.settings.groupFrequency=Object.assign({},(rdata.settings&&rdata.settings.groupFrequency)||{},_gf||{});}migrateCategoryLabels();migrateThemaOmschrijvingBug();migrateReizenTravelHours();migrateDuplicateEntryIds();migrateDuplicatePlannedIds();migrateDuplicateTodoIds();migrateDuplicatePrayerIds();migrateLidPersonType();saveLocal();}}}catch(pullErr){}
+      db.settings.groupFrequency=Object.assign({},(rdata.settings&&rdata.settings.groupFrequency)||{},_gf||{});
+      // Same problem, same fix, for dismissedDupeGroups (the "geen
+      // duplicaten - negeren" list from the duplicate-entry reviewer):
+      // Object.assign above just replaced it wholesale with whatever Drive
+      // had, so if this pull happened before the just-made local dismissal
+      // had a chance to reach Drive, the dismissal silently vanished and the
+      // group came right back - "I keep clicking it but it keeps coming
+      // back". Union local+remote instead of overwriting, so a dismissal
+      // made on either device always sticks.
+      db.settings.dismissedDupeGroups=Array.from(new Set([].concat((rdata.settings&&rdata.settings.dismissedDupeGroups)||[],_ddg||[])));}migrateCategoryLabels();migrateThemaOmschrijvingBug();migrateReizenTravelHours();migrateDuplicateEntryIds();migrateDuplicatePlannedIds();migrateDuplicateTodoIds();migrateDuplicatePrayerIds();migrateLidPersonType();saveLocal();}}}catch(pullErr){}
   // If the pre-upload pull above didn't actually succeed (network blip,
   // transient Drive error, malformed/empty response) we have no idea what's
   // currently on Drive. Falling through to upload db as-is in that case used
@@ -11224,12 +11233,16 @@ async function syncToDrive(forceOverwrite){if(!useGoogleDrive||!accessToken){sav
   // once the pull can actually succeed.
   if(!forceOverwrite&&!_pullOk)throw new Error('Drive pull failed before upload - aborting to avoid overwriting remote changes');
   }const body=await serializeDb(db);if(driveFileId){await driveUploadBody(driveFileId,body);}else{const m=await gapi.client.drive.files.create({resource:{name:DRIVE_FILE_NAME,parents:['appDataFolder']},fields:'id'});driveFileId=m.result.id;await driveUploadBody(driveFileId,body);}lastSyncTime=new Date();setSyncStatus('ok',(LANG==='en'?'Saved to Drive · ':LANG==='es'?'Guardado en Drive · ':LANG==='fr'?'Enregistré dans Drive · ':LANG==='de'?'In Drive gespeichert · ':LANG==='ru'?'Сохранено в Drive · ':'Opgeslagen in Drive · ')+lastSyncTime.toLocaleTimeString(getLocale(),{hour:'2-digit',minute:'2-digit'}));maybeCreateDailySnapshot();}catch(e){if(isDriveAuthError(e)){accessToken=null;}saveLocal();setSyncStatus('err',LANG==='en'?'Drive error — saved locally':LANG==='es'?'Error Drive — guardado local':LANG==='fr'?'Erreur Drive — sauvegarde locale':LANG==='de'?'Drive-Fehler — lokal gespeichert':LANG==='ru'?'Ошибка Drive — сохранено локально':'Drive fout — lokaal opgeslagen');}}
-async function loadFromDrive(){setSyncStatus('info',LANG==='en'?'Loading from Drive…':LANG==='es'?'Cargando de Drive…':LANG==='fr'?'Chargement Drive…':LANG==='de'?'Laden von Drive…':LANG==='ru'?'Загрузка с Drive…':'Laden van Drive…',true);try{await pullEncMetaFromDrive();const l=await gapi.client.drive.files.list({spaces:'appDataFolder',q:`name='${DRIVE_FILE_NAME}'`,fields:'files(id)'});const f=l.result.files;if(f&&f.length){driveFileId=f[0].id;const res=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{headers:{'Authorization':'Bearer '+accessToken}});if(!res.ok){var _e=new Error('Drive load failed: '+res.status);_e.driveStatus=res.status;throw _e;}const data=await deserializeDb(await res.text());if(data.entries){db.tombstones=mergeTombstones(db.tombstones,data.tombstones||[]);var _tE2=tombIdsFor('entries',db.tombstones),_tP2=tombIdsFor('planned',db.tombstones),_tT2=tombIdsFor('todos',db.tombstones),_tPr2=tombIdsFor('prayers',db.tombstones),_tCs2=tombIdsFor('customStudies',db.tombstones),_tCu2=tombIdsFor('cursisten',db.tombstones);db.entries=mergeArraysById(db.entries,data.entries,_tE2);db.cursisten=mergeArraysById(db.cursisten,data.cursisten||[],_tCu2);db.churches=mergeArraysByValue(db.churches,data.churches||[]);db.planned=mergeArraysById(db.planned,data.planned||[],_tP2);db.vacationDays=mergeArraysByValue(db.vacationDays,data.vacationDays||[]);db.todos=mergeArraysById(db.todos,data.todos||[],_tT2);db.prayers=mergeArraysById(db.prayers,data.prayers||[],_tPr2);db.customStudies=mergeArraysById(db.customStudies,data.customStudies||[],_tCs2);db.approvals=mergeArraysById(db.approvals,data.approvals||[]);if(data.settings){var _ldm2=db.settings.darkMode,_lat2=db.settings.appTheme,_lts2=db.settings.textSize,_cc2=db.settings.customCategories,_clo2=db.settings.categoryLabelOverrides,_nm2=db.settings.naam,_gm2=db.settings.gemeente,_em2=db.settings.email,_tl2=db.settings.tel,_gb2=db.settings.geboortedatum,_ad2=db.settings.myAdres,_adp2=db.settings.myAdresPostcode,_adc2=db.settings.myAdresCity,_adco2=db.settings.myAdresCountry,_lg2=db.settings.lang,_gf2=db.settings.groupFrequency;Object.assign(db.settings,data.settings);if(_ldm2!==undefined)db.settings.darkMode=_ldm2;if(_lat2!==undefined)db.settings.appTheme=_lat2;if(_lts2!==undefined)db.settings.textSize=_lts2;if(_cc2)db.settings.customCategories=_cc2;if(_clo2)db.settings.categoryLabelOverrides=_clo2;if(_nm2)db.settings.naam=_nm2;if(_gm2)db.settings.gemeente=_gm2;if(_em2)db.settings.email=_em2;if(_tl2)db.settings.tel=_tl2;if(_gb2)db.settings.geboortedatum=_gb2;if(_ad2)db.settings.myAdres=_ad2;if(_adp2)db.settings.myAdresPostcode=_adp2;if(_adc2)db.settings.myAdresCity=_adc2;if(_adco2)db.settings.myAdresCountry=_adco2;if(_lg2)db.settings.lang=_lg2;
+async function loadFromDrive(){setSyncStatus('info',LANG==='en'?'Loading from Drive…':LANG==='es'?'Cargando de Drive…':LANG==='fr'?'Chargement Drive…':LANG==='de'?'Laden von Drive…':LANG==='ru'?'Загрузка с Drive…':'Laden van Drive…',true);try{await pullEncMetaFromDrive();const l=await gapi.client.drive.files.list({spaces:'appDataFolder',q:`name='${DRIVE_FILE_NAME}'`,fields:'files(id)'});const f=l.result.files;if(f&&f.length){driveFileId=f[0].id;const res=await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{headers:{'Authorization':'Bearer '+accessToken}});if(!res.ok){var _e=new Error('Drive load failed: '+res.status);_e.driveStatus=res.status;throw _e;}const data=await deserializeDb(await res.text());if(data.entries){db.tombstones=mergeTombstones(db.tombstones,data.tombstones||[]);var _tE2=tombIdsFor('entries',db.tombstones),_tP2=tombIdsFor('planned',db.tombstones),_tT2=tombIdsFor('todos',db.tombstones),_tPr2=tombIdsFor('prayers',db.tombstones),_tCs2=tombIdsFor('customStudies',db.tombstones),_tCu2=tombIdsFor('cursisten',db.tombstones);db.entries=mergeArraysById(db.entries,data.entries,_tE2);db.cursisten=mergeArraysById(db.cursisten,data.cursisten||[],_tCu2);db.churches=mergeArraysByValue(db.churches,data.churches||[]);db.planned=mergeArraysById(db.planned,data.planned||[],_tP2);db.vacationDays=mergeArraysByValue(db.vacationDays,data.vacationDays||[]);db.todos=mergeArraysById(db.todos,data.todos||[],_tT2);db.prayers=mergeArraysById(db.prayers,data.prayers||[],_tPr2);db.customStudies=mergeArraysById(db.customStudies,data.customStudies||[],_tCs2);db.approvals=mergeArraysById(db.approvals,data.approvals||[]);if(data.settings){var _ldm2=db.settings.darkMode,_lat2=db.settings.appTheme,_lts2=db.settings.textSize,_cc2=db.settings.customCategories,_clo2=db.settings.categoryLabelOverrides,_nm2=db.settings.naam,_gm2=db.settings.gemeente,_em2=db.settings.email,_tl2=db.settings.tel,_gb2=db.settings.geboortedatum,_ad2=db.settings.myAdres,_adp2=db.settings.myAdresPostcode,_adc2=db.settings.myAdresCity,_adco2=db.settings.myAdresCountry,_lg2=db.settings.lang,_gf2=db.settings.groupFrequency,_ddg2=db.settings.dismissedDupeGroups;Object.assign(db.settings,data.settings);if(_ldm2!==undefined)db.settings.darkMode=_ldm2;if(_lat2!==undefined)db.settings.appTheme=_lat2;if(_lts2!==undefined)db.settings.textSize=_lts2;if(_cc2)db.settings.customCategories=_cc2;if(_clo2)db.settings.categoryLabelOverrides=_clo2;if(_nm2)db.settings.naam=_nm2;if(_gm2)db.settings.gemeente=_gm2;if(_em2)db.settings.email=_em2;if(_tl2)db.settings.tel=_tl2;if(_gb2)db.settings.geboortedatum=_gb2;if(_ad2)db.settings.myAdres=_ad2;if(_adp2)db.settings.myAdresPostcode=_adp2;if(_adc2)db.settings.myAdresCity=_adc2;if(_adco2)db.settings.myAdresCountry=_adco2;if(_lg2)db.settings.lang=_lg2;
       // Deep-merge groupFrequency the same way syncToDrive does - see the
       // comment there. Without this, an explicit "Load from Drive" would
       // just as easily wipe a locally-set per-contact-type frequency the
       // moment remote's map didn't have that key yet.
-      db.settings.groupFrequency=Object.assign({},(data.settings&&data.settings.groupFrequency)||{},_gf2||{});}migrateCategoryLabels();migrateThemaOmschrijvingBug();migrateDuplicateEntryIds();migrateDuplicatePlannedIds();migrateDuplicateTodoIds();migrateDuplicatePrayerIds();migrateLidPersonType();saveLocal();await syncToDrive();setSyncStatus('ok',LANG==='en'?'Loaded from Drive':LANG==='es'?'Cargado de Drive':LANG==='fr'?'Chargé depuis Drive':LANG==='de'?'Von Drive geladen':LANG==='ru'?'Загружено с Drive':'Geladen vanuit Drive');}}else{
+      db.settings.groupFrequency=Object.assign({},(data.settings&&data.settings.groupFrequency)||{},_gf2||{});
+      // Same fix as syncToDrive for dismissedDupeGroups - union instead of
+      // overwrite, so a "geen duplicaten - negeren" dismissal made on this
+      // device (or another one) never gets silently undone by a Drive pull.
+      db.settings.dismissedDupeGroups=Array.from(new Set([].concat((data.settings&&data.settings.dismissedDupeGroups)||[],_ddg2||[])));}migrateCategoryLabels();migrateThemaOmschrijvingBug();migrateDuplicateEntryIds();migrateDuplicatePlannedIds();migrateDuplicateTodoIds();migrateDuplicatePrayerIds();migrateLidPersonType();saveLocal();await syncToDrive();setSyncStatus('ok',LANG==='en'?'Loaded from Drive':LANG==='es'?'Cargado de Drive':LANG==='fr'?'Chargé depuis Drive':LANG==='de'?'Von Drive geladen':LANG==='ru'?'Загружено с Drive':'Geladen vanuit Drive');}}else{
   // No file at all in this account's appDataFolder - this is NOT the same as
   // "loaded and merged successfully". It happens on a genuinely fresh
   // account (fine, nothing to warn about) but ALSO happens silently if this
@@ -20076,6 +20089,33 @@ function removeEntriesMatchingImport(entries){
   });
   db.entries=db.entries.filter(function(ex){return !toRemoveIds[ex.id];});
 }
+// The exact-match check above only catches a re-imported row as "already
+// here" when EVERY field matches byte-for-byte - so a corrective re-import
+// (e.g. fixing how travel hours/km get mapped) is exactly the case it can't
+// catch: the whole point of re-importing is that some fields are now
+// different, which means dupeCount comes back 0 for those rows and they get
+// silently added alongside the old, now-outdated copy instead of replacing
+// it. That's what actually created the pile of "×2" entries after a
+// corrective re-import, not a broken skip/replace choice - the app never
+// even recognized there was an overlap to ask about. Rather than guessing
+// which copy is right (a real risk: two genuinely separate short sessions
+// on the same day/activity can legitimately both be correct), reuse the
+// same "possible duplicates" reviewer already in Settings
+// (findPossibleDuplicateEntryGroups/openDuplicatesModal), scoped to just
+// the entries this import touched, and offer to open it immediately so nothing
+// silently piles up unnoticed.
+function notifyPossibleDuplicatesAfterImport(addedEntries){
+  var addedIds={};
+  (addedEntries||[]).forEach(function(e){if(e)addedIds[e.id]=true;});
+  if(!Object.keys(addedIds).length)return;
+  var groups=findPossibleDuplicateEntryGroups().filter(function(g){
+    return g.some(function(e){return addedIds[e.id];});
+  });
+  if(!groups.length)return;
+  var total=groups.reduce(function(n,g){return n+g.length;},0);
+  var msg=tMap({nl:'Let op: '+total+' registratie(s) uit deze import lijken op registraties die al bestonden (zelfde dag/activiteit, maar andere uren/reistijd/km/notitie) - de app kon ze niet automatisch samenvoegen. Nu bekijken en opschonen?',en:'Heads up: '+total+' entries from this import look similar to ones that already existed (same day/activity, but different hours/travel/km/note) - the app couldn\'t merge them automatically. Review and clean up now?',es:'Atención: '+total+' registros de esta importación se parecen a registros que ya existían (mismo día/actividad, pero distintas horas/viaje/km/nota) - la app no pudo combinarlos automáticamente. ¿Revisar y limpiar ahora?'});
+  if(confirm(msg))openDuplicatesModal();
+}
 
 // Shows the import result wherever it's actually visible: the Settings
 // screen's own #import-result div if that's where the import happened, or
@@ -20465,7 +20505,8 @@ function processImportFile(file){
           db.entries=[...db.entries,..._newEntries];save();
           var _sCursisten=document.getElementById('s-cursisten');
           if(_sCursisten&&_sCursisten.classList.contains('active'))renderCursisten();
-          showImportResult('✓ '+_newEntries.length+' activiteiten geïmporteerd!'+(_split.dupeCount?' ('+_split.dupeCount+' bestonden al en zijn overgeslagen.)':''));}
+          showImportResult('✓ '+_newEntries.length+' activiteiten geïmporteerd!'+(_split.dupeCount?' ('+_split.dupeCount+' bestonden al en zijn overgeslagen.)':''));
+          notifyPossibleDuplicatesAfterImport(_newEntries);}
         return;
       }
       const isMaandrapport=detectMaandrapportCsv(text);
@@ -20478,11 +20519,13 @@ function processImportFile(file){
       if(split.dupeCount===0){
         // No overlap at all - the plain, original single-choice flow.
         if(confirm(`${formatLabel} met ${imported.entries.length} activiteiten. Toevoegen?`)){
-          db.entries=[...db.entries,...dedupeImportIds(imported.entries)];
+          const _added=dedupeImportIds(imported.entries);
+          db.entries=[...db.entries,..._added];
           imported.cursisten.forEach(c=>{if(!db.cursisten.find(x=>x.naam===c.naam))db.cursisten.push(c);});
           save();
           if(typeof screen!=='undefined'&&screen==='cursisten')renderCursisten();
           showImportResult('✓ '+imported.entries.length+' activiteiten geïmporteerd!');
+          notifyPossibleDuplicatesAfterImport(_added);
         }
         return;
       }
@@ -20496,18 +20539,22 @@ function processImportFile(file){
         :`Dit bestand lijkt al eerder geïmporteerd: alle ${imported.entries.length} activiteiten bestaan al.\n\nOK = bestaande vervangen door dit bestand\nAnnuleren = niets doen`;
       if(confirm(replaceMsg)){
         removeEntriesMatchingImport(imported.entries);
-        db.entries=[...db.entries,...dedupeImportIds(imported.entries)];
+        const _added=dedupeImportIds(imported.entries);
+        db.entries=[...db.entries,..._added];
         imported.cursisten.forEach(c=>{if(!db.cursisten.find(x=>x.naam===c.naam))db.cursisten.push(c);});
         save();
         if(typeof screen!=='undefined'&&screen==='cursisten')renderCursisten();
         showImportResult('✓ '+imported.entries.length+' activiteiten geïmporteerd ('+split.dupeCount+' bestaande vervangen).');
+        notifyPossibleDuplicatesAfterImport(_added);
       }else{
         if(split.newEntries.length===0)return;
-        db.entries=[...db.entries,...dedupeImportIds(split.newEntries)];
+        const _added=dedupeImportIds(split.newEntries);
+        db.entries=[...db.entries,..._added];
         imported.cursisten.forEach(c=>{if(!db.cursisten.find(x=>x.naam===c.naam))db.cursisten.push(c);});
         save();
         if(typeof screen!=='undefined'&&screen==='cursisten')renderCursisten();
         showImportResult('✓ '+split.newEntries.length+' activiteiten geïmporteerd! ('+split.dupeCount+' bestonden al en zijn overgeslagen.)');
+        notifyPossibleDuplicatesAfterImport(_added);
       }
     }catch(err){showImportResult('Fout: '+err.message,true);}
   };
