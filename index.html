@@ -10514,12 +10514,42 @@ function migrateSettings(){
   }
   migrateCategoryLabels();
   migrateThemaOmschrijvingBug();
+  migrateReizenTravelHours();
   migrateDuplicateEntryIds();
   migrateDuplicatePlannedIds();
   migrateDuplicateTodoIds();
   migrateDuplicatePrayerIds();
   migrateDuplicateCursistIds();
   migrateLidPersonType();
+}
+// One-time repair: the Excel/legacy-report importer used to put a standalone
+// "Reizen - X" row's hours in `uren` (worked time) instead of `reisUren`
+// (travel time), so every imported travel entry showed under the
+// spreadsheet's Uren column instead of Reistijd, even though it was purely
+// travel. Fixed going forward in parseExcelCSV; this repairs entries already
+// imported before that fix, in place, on every device - no re-import
+// needed. Only touches entries whose OWN category is a dedicated travel
+// category (isTravel) with hours sitting in uren and none already in
+// reisUren, so it can't double-move a normal combined activity+travel entry
+// or run twice on an already-fixed row.
+function migrateReizenTravelHours(){
+  if(!db.entries||!db.entries.length)return;
+  var changed=false;
+  db.entries.forEach(function(e){
+    if(!e.categorie)return;
+    var cat=findCatByLabel(e.categorie);
+    if(!cat||!cat.isTravel)return;
+    var uren=parseFloat(e.uren)||0;
+    var reisUren=parseFloat(e.reisUren)||0;
+    if(uren>0&&reisUren===0){
+      e.reisUren=uren;
+      e.uren=0;
+      touch(e);
+      changed=true;
+    }
+  });
+  if(changed&&typeof save==='function')save();
+  else if(changed&&typeof saveLocal==='function')saveLocal();
 }
 // One-time migration: old category labels that were renamed get updated on
 // existing saved entries so historical data keeps matching the picker/CATEGORIES.
@@ -11179,7 +11209,7 @@ async function syncToDrive(forceOverwrite){if(!useGoogleDrive||!accessToken){sav
       // instead: start from remote's map, then overlay local's on top so a
       // just-made local edit always wins on a shared key while still
       // picking up any other-device edits this device hasn't seen yet.
-      db.settings.groupFrequency=Object.assign({},(rdata.settings&&rdata.settings.groupFrequency)||{},_gf||{});}migrateCategoryLabels();migrateThemaOmschrijvingBug();migrateDuplicateEntryIds();migrateDuplicatePlannedIds();migrateDuplicateTodoIds();migrateDuplicatePrayerIds();migrateLidPersonType();saveLocal();}}}catch(pullErr){}
+      db.settings.groupFrequency=Object.assign({},(rdata.settings&&rdata.settings.groupFrequency)||{},_gf||{});}migrateCategoryLabels();migrateThemaOmschrijvingBug();migrateReizenTravelHours();migrateDuplicateEntryIds();migrateDuplicatePlannedIds();migrateDuplicateTodoIds();migrateDuplicatePrayerIds();migrateLidPersonType();saveLocal();}}}catch(pullErr){}
   // If the pre-upload pull above didn't actually succeed (network blip,
   // transient Drive error, malformed/empty response) we have no idea what's
   // currently on Drive. Falling through to upload db as-is in that case used
@@ -11460,6 +11490,7 @@ async function applyRestoredBackupData(data){
   if(data.settings)Object.assign(db.settings,data.settings);
   migrateCategoryLabels();
   migrateThemaOmschrijvingBug();
+  migrateReizenTravelHours();
   saveLocal();
   try{ await syncToDrive(true); }catch(e){}
   applySettings();
@@ -18017,10 +18048,19 @@ function expandEntriesForReport(entries){
   (entries||[]).forEach(function(e){
     if(!e)return;
     var reisU=parseFloat(e.reisUren)||0;
-    if(reisU>0){
+    var ownCat=findCatByLabel(e.categorie);
+    // An entry whose OWN category is already a dedicated travel category
+    // (e.g. a "Reizen - Pastoraal" row from the Excel/legacy importer,
+    // which stores its hours in reisUren so it shows under Reistijd
+    // instead of Uren) already carries its specific travel type in
+    // categorie itself - splitting it here would just discard that and
+    // re-file it under the generic 'Reizen - Overig' fallback below (since
+    // travel categories don't set their own travelLabel). Leave it as-is;
+    // entryUren() elsewhere already adds uren+reisUren together regardless
+    // of which field the hours are actually sitting in.
+    if(reisU>0&&!(ownCat&&ownCat.isTravel)){
       out.push(Object.assign({},e,{reisUren:0}));
-      var cat=findCatByLabel(e.categorie);
-      var travelCat=(cat&&cat.travelLabel)?cat.travelLabel:'Reizen - Overig';
+      var travelCat=(ownCat&&ownCat.travelLabel)?ownCat.travelLabel:'Reizen - Overig';
       out.push(Object.assign({},e,{
         id:e.id+'-reis',categorie:travelCat,aard:'Reistijd',uren:reisU,km:0,kosten:0,reisUren:0,
         omschrijving:(LANG==='en'?'Travel time for: ':LANG==='es'?'Tiempo de viaje para: ':LANG==='fr'?'Trajet pour : ':LANG==='de'?'Reisezeit für: ':'Reistijd voor: ')+(e.categorie?getCatLabel(e.categorie):''),
@@ -20009,6 +20049,26 @@ function splitNewFromDuplicateEntries(entries){
   });
   return {newEntries:newEntries,dupeCount:dupeCount};
 }
+// Counterpart to the skip-by-default behavior above, for when the user
+// explicitly chooses to replace instead (e.g. re-importing after fixing how
+// the importer maps a field, so previously-imported rows pick up the fix
+// rather than staying wrong forever). Removes existing entries whose content
+// exactly matches one of the incoming rows, so the freshly parsed version
+// can be inserted in its place. Only removes as many matches per key as the
+// incoming batch actually re-supplies, so a legitimately-repeated entry
+// (e.g. the same short prayer logged on 3 different days would have 3
+// different datums and thus 3 different keys anyway, but same-day identical
+// entries do happen) isn't over-collapsed.
+function removeEntriesMatchingImport(entries){
+  var incomingCounts={};
+  (entries||[]).forEach(function(e){var k=dupeEntryKeyExact(e);incomingCounts[k]=(incomingCounts[k]||0)+1;});
+  var toRemoveIds={};
+  db.entries.forEach(function(ex){
+    var k=dupeEntryKeyExact(ex);
+    if(incomingCounts[k]>0){toRemoveIds[ex.id]=true;incomingCounts[k]--;}
+  });
+  db.entries=db.entries.filter(function(ex){return !toRemoveIds[ex.id];});
+}
 
 // Shows the import result wherever it's actually visible: the Settings
 // screen's own #import-result div if that's where the import happened, or
@@ -20408,19 +20468,39 @@ function processImportFile(file){
       if(!imported.entries.length){showImportResult(isMaandrapport?'Geen activiteiten gevonden - controleer of de bestandsnaam een jaar en Nederlandse maandnaam bevat (bijv. "2024 oktober maandrapport.csv").':'Geen activiteiten gevonden.',true);return;}
       const formatLabel=isMaandrapport?'Maandrapport (NL-formaat)':isLegacyReport?'Maandrapport (SMI-formaat)':isExcel?'Excel-urenregistratie':'App-export';
       const split=splitNewFromDuplicateEntries(imported.entries);
-      if(split.newEntries.length===0){
-        alert(`Dit bestand lijkt al eerder geïmporteerd: alle ${imported.entries.length} activiteiten bestaan al. Er is niets toegevoegd.`);
+      if(split.dupeCount===0){
+        // No overlap at all - the plain, original single-choice flow.
+        if(confirm(`${formatLabel} met ${imported.entries.length} activiteiten. Toevoegen?`)){
+          db.entries=[...db.entries,...dedupeImportIds(imported.entries)];
+          imported.cursisten.forEach(c=>{if(!db.cursisten.find(x=>x.naam===c.naam))db.cursisten.push(c);});
+          save();
+          if(typeof screen!=='undefined'&&screen==='cursisten')renderCursisten();
+          showImportResult('✓ '+imported.entries.length+' activiteiten geïmporteerd!');
+        }
         return;
       }
-      const confirmMsg=split.dupeCount>0
-        ?`${formatLabel} met ${imported.entries.length} activiteiten. ${split.dupeCount} daarvan bestaan al (lijkt op een eerdere import) en worden overgeslagen. ${split.newEntries.length} nieuwe toevoegen?`
-        :`${formatLabel} met ${imported.entries.length} activiteiten. Toevoegen?`;
-      if(confirm(confirmMsg)){
+      // Overlap detected - let the user pick replace vs. skip instead of
+      // silently deciding for them. Replace matters when re-importing after
+      // a parser fix (so already-imported rows pick up the correction);
+      // skip matters when some of the "duplicates" have since been hand-
+      // edited in the app and shouldn't be overwritten by the raw import.
+      const replaceMsg=split.newEntries.length>0
+        ?`${formatLabel} met ${imported.entries.length} activiteiten. ${split.dupeCount} daarvan bestaan al.\n\nOK = bestaande vervangen door dit bestand (en ${split.newEntries.length} nieuwe toevoegen)\nAnnuleren = alleen de ${split.newEntries.length} nieuwe toevoegen, bestaande laten staan`
+        :`Dit bestand lijkt al eerder geïmporteerd: alle ${imported.entries.length} activiteiten bestaan al.\n\nOK = bestaande vervangen door dit bestand\nAnnuleren = niets doen`;
+      if(confirm(replaceMsg)){
+        removeEntriesMatchingImport(imported.entries);
+        db.entries=[...db.entries,...dedupeImportIds(imported.entries)];
+        imported.cursisten.forEach(c=>{if(!db.cursisten.find(x=>x.naam===c.naam))db.cursisten.push(c);});
+        save();
+        if(typeof screen!=='undefined'&&screen==='cursisten')renderCursisten();
+        showImportResult('✓ '+imported.entries.length+' activiteiten geïmporteerd ('+split.dupeCount+' bestaande vervangen).');
+      }else{
+        if(split.newEntries.length===0)return;
         db.entries=[...db.entries,...dedupeImportIds(split.newEntries)];
         imported.cursisten.forEach(c=>{if(!db.cursisten.find(x=>x.naam===c.naam))db.cursisten.push(c);});
         save();
         if(typeof screen!=='undefined'&&screen==='cursisten')renderCursisten();
-        showImportResult('✓ '+split.newEntries.length+' activiteiten geïmporteerd!'+(split.dupeCount?' ('+split.dupeCount+' bestonden al en zijn overgeslagen.)':''));
+        showImportResult('✓ '+split.newEntries.length+' activiteiten geïmporteerd! ('+split.dupeCount+' bestonden al en zijn overgeslagen.)');
       }
     }catch(err){showImportResult('Fout: '+err.message,true);}
   };
@@ -20625,7 +20705,16 @@ function parseExcelCSV(text){
     if(!dr||!cat)return;
     const datum=toIsoDatum(dr);
     const cn=(cols[iCursistNr]||'').trim(),cNm=(cols[iCursist]||'').trim();
-    entries.push({id:Date.now()+i,datum,categorie:cat,aard:(cols[iAard]||'').trim(),omschrijving:(cols[iOmsch]||'').trim(),uren:numVal(cols[iUren]),km:numVal(cols[iKm]),cursistId:cn,cursistNaam:cNm,themacode:(cols[iThemacode]||'').trim(),thema:(cols[iThema]||'').trim(),opmerking:'',reminder:'',isAutoTravel:cat.startsWith('Reizen')});
+    // A "Reizen - X" row is travel time, not worked time - it belongs in
+    // reisUren (shows under the Reistijd column) rather than uren (which
+    // reads as regular worked hours). The category itself is left untouched
+    // (still e.g. "Reizen - Pastoraal"), so which activity the travel was
+    // for stays visible - see expandEntriesForReport's isTravel guard,
+    // which keeps a row already carrying its own specific travel category
+    // from being re-split into a generic "Reizen - Overig" bucket.
+    const isTravelRow=cat.startsWith('Reizen');
+    const hrs=numVal(cols[iUren]);
+    entries.push({id:Date.now()+i,datum,categorie:cat,aard:(cols[iAard]||'').trim(),omschrijving:(cols[iOmsch]||'').trim(),uren:isTravelRow?0:hrs,reisUren:isTravelRow?(hrs===''?0:hrs):0,km:numVal(cols[iKm]),cursistId:cn,cursistNaam:cNm,themacode:(cols[iThemacode]||'').trim(),thema:(cols[iThema]||'').trim(),opmerking:'',reminder:'',isAutoTravel:isTravelRow});
     if(cn&&cNm&&!cm[cn])cm[cn]={id:cn,naam:cNm,adres:'',plaats:'',tel:'',opmerking:''};
   });
   // cn (the raw "Cursistnr." column value, e.g. "1", "2"...) was used
