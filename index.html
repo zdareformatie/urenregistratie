@@ -19989,6 +19989,26 @@ function dedupeImportIds(newEntries){
     return Object.assign({},e,{id:id});
   });
 }
+// Re-importing the same file (whole or in part) used to silently double
+// every activity, since dedupeImportIds above only avoids ID collisions -
+// it never checks whether the CONTENT already exists. This reuses the same
+// exact-match key the manual duplicate finder uses (dupeEntryKeyExact) to
+// split an incoming batch into genuinely-new rows vs. rows that already
+// exist, so processImportFile can skip the existing ones and tell the user
+// how many were skipped instead of quietly duplicating them. Deliberately
+// skips (not replaces) matches: an entry may have been edited/linked to a
+// contact since it was first imported, and blindly overwriting it with the
+// raw re-imported version would throw that work away.
+function splitNewFromDuplicateEntries(entries){
+  var existingKeys={};
+  db.entries.forEach(function(e){existingKeys[dupeEntryKeyExact(e)]=true;});
+  var newEntries=[],dupeCount=0;
+  (entries||[]).forEach(function(e){
+    if(existingKeys[dupeEntryKeyExact(e)])dupeCount++;
+    else newEntries.push(e);
+  });
+  return {newEntries:newEntries,dupeCount:dupeCount};
+}
 
 // Shows the import result wherever it's actually visible: the Settings
 // screen's own #import-result div if that's where the import happened, or
@@ -20349,8 +20369,16 @@ function processImportFile(file){
             es:'Contacto compartido '+_who+'recibido: '+_namesTxt+(data._includesNotes?'.':' (sin notas privadas)')+'\n\n¿Añadir a tus contactos?'
           });
         }
-        if(confirm(_shareConfirmMsg||`JSON gevonden met ${count} activiteiten. Toevoegen?`)){
-          var _newEntries=dedupeImportIds(data.entries||[]);
+        var _split=splitNewFromDuplicateEntries(data.entries||[]);
+        if(count>0&&_split.newEntries.length===0){
+          alert(`Dit bestand lijkt al eerder geïmporteerd: alle ${count} activiteiten bestaan al. Er is niets toegevoegd.`);
+          return;
+        }
+        var _confirmMsg=_shareConfirmMsg||(_split.dupeCount>0
+          ?`JSON gevonden met ${count} activiteiten. ${_split.dupeCount} daarvan bestaan al en worden overgeslagen. ${_split.newEntries.length} nieuwe toevoegen?`
+          :`JSON gevonden met ${count} activiteiten. Toevoegen?`);
+        if(confirm(_confirmMsg)){
+          var _newEntries=dedupeImportIds(_split.newEntries);
           // A cursist id from someone else's export can collide with an id
           // already used locally (same reasoning as the Excel-import fix in
           // parseExcelCSV — see its comment). Remap on collision and keep
@@ -20370,7 +20398,7 @@ function processImportFile(file){
           db.entries=[...db.entries,..._newEntries];save();
           var _sCursisten=document.getElementById('s-cursisten');
           if(_sCursisten&&_sCursisten.classList.contains('active'))renderCursisten();
-          showImportResult('✓ '+count+' activiteiten geïmporteerd!');}
+          showImportResult('✓ '+_newEntries.length+' activiteiten geïmporteerd!'+(_split.dupeCount?' ('+_split.dupeCount+' bestonden al en zijn overgeslagen.)':''));}
         return;
       }
       const isMaandrapport=detectMaandrapportCsv(text);
@@ -20379,12 +20407,20 @@ function processImportFile(file){
       const imported=isMaandrapport?parseMaandrapportCSV(text,file.name):(isLegacyReport?parseLegacyReportCSV(text):(isExcel?parseExcelCSV(text):parseAppCSV(text)));
       if(!imported.entries.length){showImportResult(isMaandrapport?'Geen activiteiten gevonden - controleer of de bestandsnaam een jaar en Nederlandse maandnaam bevat (bijv. "2024 oktober maandrapport.csv").':'Geen activiteiten gevonden.',true);return;}
       const formatLabel=isMaandrapport?'Maandrapport (NL-formaat)':isLegacyReport?'Maandrapport (SMI-formaat)':isExcel?'Excel-urenregistratie':'App-export';
-      if(confirm(`${formatLabel} met ${imported.entries.length} activiteiten. Toevoegen?`)){
-        db.entries=[...db.entries,...dedupeImportIds(imported.entries)];
+      const split=splitNewFromDuplicateEntries(imported.entries);
+      if(split.newEntries.length===0){
+        alert(`Dit bestand lijkt al eerder geïmporteerd: alle ${imported.entries.length} activiteiten bestaan al. Er is niets toegevoegd.`);
+        return;
+      }
+      const confirmMsg=split.dupeCount>0
+        ?`${formatLabel} met ${imported.entries.length} activiteiten. ${split.dupeCount} daarvan bestaan al (lijkt op een eerdere import) en worden overgeslagen. ${split.newEntries.length} nieuwe toevoegen?`
+        :`${formatLabel} met ${imported.entries.length} activiteiten. Toevoegen?`;
+      if(confirm(confirmMsg)){
+        db.entries=[...db.entries,...dedupeImportIds(split.newEntries)];
         imported.cursisten.forEach(c=>{if(!db.cursisten.find(x=>x.naam===c.naam))db.cursisten.push(c);});
         save();
         if(typeof screen!=='undefined'&&screen==='cursisten')renderCursisten();
-        showImportResult('✓ '+imported.entries.length+' activiteiten geïmporteerd!');
+        showImportResult('✓ '+split.newEntries.length+' activiteiten geïmporteerd!'+(split.dupeCount?' ('+split.dupeCount+' bestonden al en zijn overgeslagen.)':''));
       }
     }catch(err){showImportResult('Fout: '+err.message,true);}
   };
