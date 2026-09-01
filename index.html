@@ -15195,7 +15195,7 @@ function _renderLogInner(){
           <div class="ac-body" style="cursor:pointer" onclick="openMultiDaySpanSummary(${spanIdsJson},'entries')">
             <div class="ac-top">
               <div class="ac-who" style="${bsColor}">${title}</div>
-              <div class="ac-hours" style="display:flex;gap:16px;align-items:baseline"><span>${entryUren(e)||0}${t('hours_abbr')}</span><span style="width:34px;text-align:right;color:var(--amber)">${e.km?e.km+distUnit():''}</span></div>
+              <div class="ac-hours" style="display:flex;gap:16px;align-items:baseline"><span>${entryUren(e)||0}${t('hours_abbr')}</span><span style="min-width:34px;text-align:right;color:var(--amber);white-space:nowrap">${e.km?Math.round(e.km)+distUnit():(parseFloat(e.kosten)>0?currencySymbol()+parseFloat(e.kosten).toFixed(2).replace('.',','):'')}</span></div>
             </div>
             <div class="ac-cat">${getCatLabel(e.categorie)}</div>
             <div class="ac-desc">🗓 ${spanLbl}${subtitle?' · '+subtitle:''}</div>
@@ -15208,7 +15208,7 @@ function _renderLogInner(){
           <div class="ac-body">
             <div class="ac-top">
               <div class="ac-who" style="cursor:pointer;${bsColor}" onclick="openEditEntryModal(${idArg})">${title}</div>
-              <div class="ac-hours" style="display:flex;gap:16px;align-items:baseline"><span>${entryUren(e)||0}${t('hours_abbr')}</span><span style="width:34px;text-align:right;color:var(--amber)">${e.km?e.km+distUnit():''}</span></div>
+              <div class="ac-hours" style="display:flex;gap:16px;align-items:baseline"><span>${entryUren(e)||0}${t('hours_abbr')}</span><span style="min-width:34px;text-align:right;color:var(--amber);white-space:nowrap">${e.km?Math.round(e.km)+distUnit():(parseFloat(e.kosten)>0?currencySymbol()+parseFloat(e.kosten).toFixed(2).replace('.',','):'')}</span></div>
             </div>
             <div class="ac-cat">${e.tijd?formatTimeDisplay(e.tijd)+' · ':''}${getCatLabel(e.categorie)}${e.isAutoTravel?' 🚗':''}</div>
             ${subtitle?`<div class="ac-desc"${hasDescWithContact?' style="color:var(--brand);font-weight:600"':''}>${subtitle}</div>`:''}
