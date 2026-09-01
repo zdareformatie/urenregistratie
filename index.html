@@ -19311,7 +19311,7 @@ ${(function(){
         return`<div class="rp-act-row3 rp-sec-timeline-detail">
               <div class="rp-act-r3-date">${idx===0?dateShort:''}</div>
               <div class="rp-act-r3-cat"><div class="rp-act-group-bar" style="background:${color}"></div><span class="rp-act-r3-cat-txt">${catLabel}</span></div>
-              <div class="rp-act-r3-desc"><span class="rp-name-real">${name}</span><span class="rp-name-anon">${nameAnon}</span>${e.opmerking?' <span class="rp-act-r3-note">— '+e.opmerking+'</span>':''}</div>
+              <div class="rp-act-r3-desc"><span class="rp-name-real">${name}</span><span class="rp-name-anon">${nameAnon}</span>${e.opmerking?' <span class="rp-act-r3-note rp-sec-bs-notes">— '+escapeHtml(e.opmerking)+'</span>':''}</div>
               <div class="rp-act-r3-km">${displayKm?displayKm+distUnit():''}</div>
               <div class="rp-act-r3-hrs">${displayU}${t('hours_abbr')}</div>
               <div class="rp-act-r3-total"></div>
@@ -24030,7 +24030,12 @@ function getPdfExportPrefs(){
       km: obj.km!==undefined?obj.km!==false:legacyTravel,
       kosten: obj.kosten!==undefined?obj.kosten!==false:legacyTravel,
       bs: obj.bs!==false,
-      bsNotes: obj.bsNotes!==false,
+      // Personal notes (typed on Bible-study sessions and on any logged
+      // activity, shown in the Daily overview) are opt-in, off by default -
+      // same privacy-first default as the "Contact delen" notes checkbox.
+      // These are the worker's own private remarks, not meant to go to the
+      // president/leader unless explicitly turned on for this export.
+      bsNotes: obj.bsNotes===true,
       contactPhone: obj.contactPhone===true,
       contactAddress: obj.contactAddress===true,
       timeline: obj.timeline!==false,
@@ -24044,7 +24049,7 @@ function getPdfExportPrefs(){
       yearProgress: obj.yearProgress!==false
     };
   }catch(e){
-    return {cover:true,catdist:false,yearProgress:true,km:true,kosten:true,bs:true,bsNotes:true,contactPhone:false,contactAddress:false,timeline:true,timelineDetail:true,absence:true,anonymize:false,planned:true,prayers:true,doop:true,newstats:true};
+    return {cover:true,catdist:false,yearProgress:true,km:true,kosten:true,bs:true,bsNotes:false,contactPhone:false,contactAddress:false,timeline:true,timelineDetail:true,absence:true,anonymize:false,planned:true,prayers:true,doop:true,newstats:true};
   }
 }
 function savePdfExportPrefs(p){
@@ -24074,7 +24079,7 @@ function openPdfExportOptions(mode){
   var kmLbl=tMap({nl:'Kilometers (voor penningmeester)',en:'Kilometers (for treasurer)',es:'Kilómetros (para tesorero)',fr:'Kilomètres (pour trésorier)',de:'Kilometer (für Kassierer)',ro:'Kilometri (pentru trezorier)',hu:'Kilométer (pénztárosnak)',ru:'Километры (для казначея)',it:'Chilometri (per il tesoriere)',pt:'Quilómetros (para o tesoureiro)'});
   var kostenLbl=tMap({nl:'Onkosten (bus/vliegtuig/trein/benzine)',en:'Expenses (bus/plane/train/fuel)',es:'Gastos (bus/avión/tren/gasolina)',fr:'Frais (bus/avion/train/essence)',de:'Ausgaben (Bus/Flug/Zug/Benzin)',ro:'Cheltuieli (autobuz/avion/tren/combustibil)',hu:'Költségek (busz/repülő/vonat/üzemanyag)',ru:'Расходы (автобус/самолёт/поезд/топливо)',it:'Spese (bus/aereo/treno/carburante)',pt:'Despesas (ônibus/avião/trem/combustível)'});
   var bsLbl=tMap({nl:'Bijbelstudies overzicht (per cursist)',en:'Bible studies overview (per student)',es:'Resumen de estudios bíblicos (por alumno)',fr:'Aperçu des études bibliques (par élève)',de:'Bibelstudien-Übersicht (pro Schüler)',ro:'Prezentare studii biblice (pe elev)',hu:'Bibliatanulmányok áttekintése (tanulónként)',ru:'Обзор библейских уроков (по ученику)',it:'Panoramica studi biblici (per studente)',pt:'Visão geral dos estudos bíblicos (por aluno)'});
-  var bsNotesLbl=tMap({nl:'— incl. persoonlijke notities',en:'— incl. personal notes',es:'— incl. notas personales',fr:'— notes personnelles incluses',de:'— inkl. persönliche Notizen',ro:'— inclusiv notițe personale',hu:'— személyes jegyzetekkel',ru:'— с личными заметками',it:'— incl. note personali',pt:'— incl. notas pessoais'});
+  var bsNotesLbl=tMap({nl:'Persoonlijke notities/opmerkingen (bijbelstudies en dagoverzicht) — staat standaard uit',en:'Personal notes/comments (Bible studies and daily overview) — off by default',es:'Notas/comentarios personales (estudios bíblicos y resumen diario) — desactivado por defecto',fr:'Notes/commentaires personnels (études bibliques et aperçu quotidien) — désactivé par défaut',de:'Persönliche Notizen/Kommentare (Bibelstudien und Tagesübersicht) — standardmäßig aus',ro:'Notițe/comentarii personale (studii biblice și prezentare zilnică) — dezactivat implicit',hu:'Személyes jegyzetek/megjegyzések (bibliatanulmányok és napi áttekintés) — alapértelmezetten ki',ru:'Личные заметки/комментарии (библейские уроки и ежедневный обзор) — по умолчанию выключено',it:'Note/commenti personali (studi biblici e panoramica giornaliera) — disattivato per impostazione predefinita',pt:'Notas/comentários pessoais (estudos bíblicos e visão geral diária) — desativado por predefinição'});
   var contactPhoneLbl=tMap({nl:'— telefoonnummer',en:'— phone number',es:'— número de teléfono',fr:'— numéro de téléphone',de:'— Telefonnummer',ro:'— număr de telefon',hu:'— telefonszám',ru:'— номер телефона',it:'— numero di telefono',pt:'— número de telefone'});
   var contactAddressLbl=tMap({nl:'— adres',en:'— address',es:'— dirección',fr:'— adresse',de:'— Adresse',ro:'— adresă',hu:'— cím',ru:'— адрес',it:'— indirizzo',pt:'— endereço'});
   var timelineLbl=tMap({nl:'Dagoverzicht',en:'Daily overview',es:'Resumen diario',fr:'Aperçu quotidien',de:'Tagesübersicht',ro:'Prezentare zilnică',hu:'Napi áttekintés',ru:'Ежедневный обзор',it:'Panoramica giornaliera',pt:'Visão geral diária'});
@@ -24120,7 +24125,7 @@ function openPdfExportOptions(mode){
   h+=pdfOptRow('pdf-opt-km',kmLbl,prefs.km);
   h+=pdfOptRow('pdf-opt-kosten',kostenLbl,prefs.kosten);
   h+=pdfOptRow('pdf-opt-bs',bsLbl,prefs.bs);
-  h+=pdfOptRow('pdf-opt-bs-notes',bsNotesLbl,prefs.bsNotes,true);
+  h+=pdfOptRow('pdf-opt-bs-notes',bsNotesLbl,prefs.bsNotes);
   h+=pdfOptRow('pdf-opt-contact-phone',contactPhoneLbl,prefs.contactPhone,true);
   h+=pdfOptRow('pdf-opt-contact-address',contactAddressLbl,prefs.contactAddress,true);
   h+=pdfOptRow('pdf-opt-timeline',timelineLbl,prefs.timeline);
