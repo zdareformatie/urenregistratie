@@ -18351,15 +18351,20 @@ function _buildRapportInner(){
   if(s.goalUrenWeek)_goalPcts.push(Math.min(100,Math.round(_goalUren/s.goalUrenWeek*100)));
   const _goalAvgPct=_goalPcts.length?Math.round(_goalPcts.reduce((a,b)=>a+b,0)/_goalPcts.length):null;
 
-  // Vakantiedagen tile (stat row) — year view keeps the remaining/total
-  // allotment fraction (only meaningful annually); month view instead shows
-  // just that month's vacation days taken, and is omitted entirely when
-  // nothing was reported that month (e.g. Jan/Feb usually have none).
+  // Vakantiedagen tile (stat row) — a running year-to-date balance. Year
+  // view shows the full-year remaining/total allotment. Month view shows
+  // that same remaining/total fraction, but computed cumulatively from
+  // Jan 1 through the end of the selected month — e.g. 3 days taken in
+  // February reads 21/24 for Feb through June, then 5 more taken in July
+  // drops it to 16/24 from July onward. Before anything has been taken
+  // (e.g. January), the tile is omitted rather than showing the full
+  // allotment redundantly.
   const _vakTileStats=getVakantieStats(rapportYear);
-  var _vakMonthDays=0;
+  var _vakMonthStats=null;
   if(rapportViewMode==='month'&&rapportMonth){
-    var _vakMonthUren=filterByYearMonth(db.entries,rapportYear,rapportMonth).filter(function(e){return e.categorie==='Vakantie';}).reduce(function(t,e){return t+(parseFloat(e.uren)||0);},0);
-    _vakMonthDays=Math.round(_vakMonthUren/8);
+    var _vakUpToUren=filterByYear(db.entries,rapportYear).filter(function(e){return e.categorie==='Vakantie'&&(e.datum||'').slice(0,7)<=rapportMonth;}).reduce(function(t,e){return t+(parseFloat(e.uren)||0);},0);
+    var _vakUpToDays=Math.round(_vakUpToUren/8);
+    _vakMonthStats={vakDays:_vakTileStats.vakDays,vakUsedDays:_vakUpToDays,vakRemDays:Math.max(0,_vakTileStats.vakDays-_vakUpToDays)};
   }
 
   // Contacts funnel (moved up so it's available for the merged glance+contacts
@@ -18670,8 +18675,8 @@ function _buildRapportInner(){
       <div><div class="rp-glance-num">${Math.round(totalKm)}${distUnit()}</div><div class="rp-glance-label">${t('km_label')}</div></div>
       <div><div class="rp-glance-num">${currencySymbol()}${kmVergoeding}</div><div class="rp-glance-label">${t('vergoeding')}</div></div>
       ${rapportViewMode==='month'
-        ? (_vakMonthDays>0
-            ? `<div style="cursor:pointer" onclick="toggleVakantieDetail(this,'${rapportYear}','vak-detail-rp-top','vak-chev-rp-top',null,'${rapportMonth}')"><div class="rp-glance-num">${_vakMonthDays}</div><div class="rp-glance-label">${getCatLabel('Vakantie')}</div></div>`
+        ? (_vakMonthStats&&_vakMonthStats.vakUsedDays>0
+            ? `<div style="cursor:pointer" onclick="toggleVakantieDetail(this,'${rapportYear}','vak-detail-rp-top','vak-chev-rp-top',null,'${rapportMonth}')"><div class="rp-glance-num">${_vakMonthStats.vakRemDays}/${_vakMonthStats.vakDays}</div><div class="rp-glance-label">${t('vacation_remaining')}</div></div>`
             : ''
           )
         : `<div style="cursor:pointer" onclick="toggleVakantieDetail(this,'${rapportYear}','vak-detail-rp-top','vak-chev-rp-top')"><div class="rp-glance-num">${_vakTileStats.vakRemDays}/${_vakTileStats.vakDays}</div><div class="rp-glance-label">${t('vacation_remaining')}</div></div>`
@@ -20060,10 +20065,12 @@ function toggleVakantieDetail(row,year,detailId,chevId,categorie,month){
     if(chev)chev.style.transform='';
   } else {
     // Build the day list for the selected year (or, when a month is passed —
-    // e.g. from the Rapport glance tile while viewing a single month — just
-    // that month) + category (Vakantie, Verlof, Ziekteverzuim, Feestdag (NL)
-    // — whichever row was tapped).
-    var scopedEntries=month?filterByYearMonth(db.entries,year,month):filterByYear(db.entries,year);
+    // e.g. from the Rapport glance tile while viewing a single month — every
+    // day from Jan 1 through the end of that month, matching the tile's own
+    // year-to-date running balance rather than just that one month) +
+    // category (Vakantie, Verlof, Ziekteverzuim, Feestdag (NL) — whichever
+    // row was tapped).
+    var scopedEntries=month?filterByYear(db.entries,year).filter(function(e){return (e.datum||'').slice(0,7)<=month;}):filterByYear(db.entries,year);
     var catEntries=scopedEntries.filter(function(e){return e.categorie===categorie;})
       .sort(function(a,b){return a.datum>b.datum?1:-1;});
     if(!catEntries.length){
