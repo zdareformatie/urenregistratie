@@ -18369,12 +18369,18 @@ function _buildRapportInner(){
   // per month, so it's replaced with the same "studies given this period"
   // count the top row used to show on its own.
   const _topFunnel={contact:0,interested:0,student:0,doop:0};
-  // "Studied this period" — a contact counts as studied if they have at
-  // least one Bijbelstudie geven entry within the currently-viewed period
-  // (studyEntries already respects the month/year toggle via `data`). Group
-  // studies are recorded once per attendee, so this naturally counts every
-  // present student/interested person, not just distinct sessions.
+  // "Studied this period" (Bijbelstudenten tile) — a student counts as
+  // studied if they have at least one Bijbelstudie geven entry within the
+  // currently-viewed period (studyEntries already respects the month/year
+  // toggle via `data`). Group studies are recorded once per attendee, so
+  // this naturally counts every present student, not just distinct
+  // sessions.
   const _studiedIds=new Set(studyEntries.filter(function(e){return e.cursistId;}).map(function(e){return String(e.cursistId);}));
+  // "Got attention this period" (Geïnteresseerden tile) — an interested
+  // person is at an earlier stage than a Bible student, so a formal Bible
+  // study is too narrow a bar; any logged activity linked to them (visit,
+  // call/WhatsApp, Bijbelstudie geven, etc.) counts as attention.
+  const _attentionIds=new Set(data.filter(function(e){return e.cursistId;}).map(function(e){return String(e.cursistId);}));
   const _topFunnelStudied={interested:0,student:0};
   const _studiedNames={interested:[],student:[]};
   (db.cursisten||[]).forEach(function(cu){
@@ -18382,15 +18388,17 @@ function _buildRapportInner(){
     if(cu.type==='lid')return;
     var _key=getCursistGroupKey(cu);
     if(_key==='student'){_topFunnel.student++;if(_studiedIds.has(String(cu.id))){_topFunnelStudied.student++;_studiedNames.student.push(cu.naam||'');}}
-    else if(_key==='interested'){_topFunnel.interested++;if(_studiedIds.has(String(cu.id))){_topFunnelStudied.interested++;_studiedNames.interested.push(cu.naam||'');}}
+    else if(_key==='interested'){_topFunnel.interested++;if(_attentionIds.has(String(cu.id))){_topFunnelStudied.interested++;_studiedNames.interested.push(cu.naam||'');}}
     else _topFunnel.contact++;
   });
   _studiedNames.student.sort();
   _studiedNames.interested.sort();
   // Explanation text shown when a funnel tile is tapped — templated so word
   // order can differ per language; {studied}/{total}/{period} are swapped
-  // in at render time.
-  const _funnelExplainTpl=tMap({
+  // in at render time. Bijbelstudenten uses the "study" wording, since that
+  // tile specifically counts Bijbelstudie geven entries; Geïnteresseerden
+  // uses the broader "attention" wording, since it counts any contact.
+  const _funnelExplainTplStudy=tMap({
     nl:'{studied} van de {total} {type} kregen in {period} minstens één bijbelstudie.',
     en:'{studied} of the {total} {type} received at least one Bible study in {period}.',
     es:'{studied} de los {total} {type} recibieron al menos un estudio bíblico en {period}.',
@@ -18402,7 +18410,7 @@ function _buildRapportInner(){
     it:'{studied} dei {total} {type} hanno ricevuto almeno uno studio biblico in {period}.',
     pt:'{studied} dos {total} {type} receberam pelo menos um estudo bíblico em {period}.'
   });
-  const _funnelNoneTpl=tMap({
+  const _funnelNoneTplStudy=tMap({
     nl:'Niemand van de {total} {type} kreeg in {period} een bijbelstudie.',
     en:'None of the {total} {type} received a Bible study in {period}.',
     es:'Ninguno de los {total} {type} recibió un estudio bíblico en {period}.',
@@ -18414,11 +18422,37 @@ function _buildRapportInner(){
     it:'Nessuno dei {total} {type} ha ricevuto uno studio biblico in {period}.',
     pt:'Nenhum dos {total} {type} recebeu um estudo bíblico em {period}.'
   });
+  const _funnelExplainTplAttention=tMap({
+    nl:'{studied} van de {total} {type} kregen in {period} aandacht (bezoek, telefoon/WhatsApp of een bijbelstudie).',
+    en:'{studied} of the {total} {type} received attention in {period} (a visit, phone/WhatsApp contact, or a Bible study).',
+    es:'{studied} de los {total} {type} recibieron atención en {period} (una visita, contacto por teléfono/WhatsApp o un estudio bíblico).',
+    fr:'{studied} des {total} {type} ont reçu de l\'attention en {period} (une visite, un contact par téléphone/WhatsApp ou une étude biblique).',
+    de:'{studied} von {total} {type} haben in {period} Aufmerksamkeit erhalten (ein Besuch, Telefon-/WhatsApp-Kontakt oder ein Bibelstudium).',
+    ro:'{studied} din cei {total} {type} au primit atenție în {period} (o vizită, un contact telefonic/WhatsApp sau un studiu biblic).',
+    hu:'{total} {type} közül {studied} kapott figyelmet {period} időszakban (látogatás, telefon-/WhatsApp-kapcsolat vagy bibliatanulmány).',
+    ru:'{studied} из {total} {type} получили внимание в {period} (визит, звонок/WhatsApp-контакт или библейское изучение).',
+    it:'{studied} dei {total} {type} hanno ricevuto attenzione in {period} (una visita, un contatto telefonico/WhatsApp o uno studio biblico).',
+    pt:'{studied} dos {total} {type} receberam atenção em {period} (uma visita, contato por telefone/WhatsApp ou um estudo bíblico).'
+  });
+  const _funnelNoneTplAttention=tMap({
+    nl:'Niemand van de {total} {type} kreeg in {period} aandacht.',
+    en:'None of the {total} {type} received attention in {period}.',
+    es:'Ninguno de los {total} {type} recibió atención en {period}.',
+    fr:'Aucun des {total} {type} n\'a reçu d\'attention en {period}.',
+    de:'Keiner der {total} {type} hat in {period} Aufmerksamkeit erhalten.',
+    ro:'Niciunul dintre cei {total} {type} nu a primit atenție în {period}.',
+    hu:'A {total} {type} közül senki sem kapott figyelmet {period} időszakban.',
+    ru:'Никто из {total} {type} не получил внимания в {period}.',
+    it:'Nessuno dei {total} {type} ha ricevuto attenzione in {period}.',
+    pt:'Nenhum dos {total} {type} recebeu atenção em {period}.'
+  });
   function _buildFunnelDetail(type){
     var totalCount=_topFunnel[type];
     var studiedCount=_topFunnelStudied[type];
     var typeLbl=(type==='student'?(t('ct_student_pl')||t('ct_student')):(t('ct_interested_pl')||t('ct_interested'))).toLowerCase();
-    var tpl=studiedCount>0?_funnelExplainTpl:_funnelNoneTpl;
+    var explainTpl=type==='student'?_funnelExplainTplStudy:_funnelExplainTplAttention;
+    var noneTpl=type==='student'?_funnelNoneTplStudy:_funnelNoneTplAttention;
+    var tpl=studiedCount>0?explainTpl:noneTpl;
     var sentence=tpl.replace('{studied}',studiedCount).replace('{total}',totalCount).replace('{type}',typeLbl).replace('{period}',maand);
     var h='<div style="font-size:12px;color:var(--text2);line-height:1.5;padding:6px 0">'+sentence+'</div>';
     if(_studiedNames[type].length){
