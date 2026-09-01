@@ -1702,13 +1702,6 @@ input[type="radio"]:checked::after{content:'';position:absolute;inset:3px;border
         <div class="settings-item-body">
         <div style="font-size:13px;color:var(--text3);margin-bottom:12px" data-i18n="approval_hint">Geen code meer nodig — importeer het antwoordbestand van je voorzitter hieronder en het wordt automatisch toegepast.</div>
 
-        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px" data-i18n="approval_as_leader_title">Als leider: verzoek beoordelen</div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:8px" data-i18n="approval_as_leader_hint">Importeer het goedkeuringsverzoek-bestand dat je van een medewerker hebt ontvangen.</div>
-        <label for="approval-request-file" class="btn full" style="display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;margin-bottom:14px">
-          <svg width="14" height="14"><use href="#ico-import"/></svg><span data-i18n="approval_import_request_btn">Verzoek importeren</span>
-        </label>
-        <input type="file" id="approval-request-file" accept=".json" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="handleApprovalRequestFile(event)">
-
         <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px" data-i18n="approval_as_worker_title">Als medewerker: antwoord verwerken</div>
         <div style="font-size:12px;color:var(--text3);margin-bottom:8px" data-i18n="approval_as_worker_hint">Importeer het antwoord-bestand dat je terugkreeg van je leider.</div>
         <label for="approval-response-file" class="btn full" style="display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer">
@@ -6101,9 +6094,6 @@ var TRANSLATIONS = {
     approval_card:'Goedkeuring',
     approval_hint:'Geen code meer nodig — importeer het antwoordbestand van je voorzitter hieronder en het wordt automatisch toegepast.',
     approval_code_lbl:'Gedeelde goedkeuringscode',
-    approval_as_leader_title:'Als leider: verzoek beoordelen',
-    approval_as_leader_hint:'Importeer het goedkeuringsverzoek-bestand dat je van een medewerker hebt ontvangen.',
-    approval_import_request_btn:'Verzoek importeren',
     approval_as_worker_title:'Als medewerker: antwoord verwerken',
     approval_as_worker_hint:'Importeer het antwoord-bestand dat je terugkreeg van je leider.',
     approval_import_response_btn:'Antwoord importeren',
@@ -6112,14 +6102,8 @@ var TRANSLATIONS = {
     approval_badge_approved:'Goedgekeurd',
     approval_badge_rejected:'Afgekeurd',
     approval_badge_changed:'Gewijzigd sinds goedkeuring',
-    approval_review_title:'Goedkeuringsverzoek beoordelen',
-    approval_review_period:'Periode',
-    approval_review_worker:'Medewerker',
-    approval_approve_btn:'Goedkeuren',
-    approval_reject_btn:'Afkeuren',
     approval_code_prompt:'Voer de gedeelde goedkeuringscode in',
     approval_code_missing:'Stel eerst een gedeelde goedkeuringscode in bij Instellingen.',
-    approval_response_downloaded:'Antwoordbestand gedownload. Stuur dit terug naar de medewerker.',
     approval_code_mismatch:'De code in dit antwoord komt niet overeen met jouw ingestelde code. De goedkeuring is niet toegepast.',
     approval_applied_approved:'Maand goedgekeurd door',
     approval_applied_rejected:'Maand afgekeurd door',
@@ -6457,9 +6441,6 @@ var TRANSLATIONS = {
     approval_card:'Approval',
     approval_hint:'No code needed — import the response file from your president below and it is applied automatically.',
     approval_code_lbl:'Shared approval code',
-    approval_as_leader_title:'As leader: review a request',
-    approval_as_leader_hint:'Import the approval-request file you received from a worker.',
-    approval_import_request_btn:'Import request',
     approval_as_worker_title:'As worker: process a response',
     approval_as_worker_hint:'Import the response file you received back from your leader.',
     approval_import_response_btn:'Import response',
@@ -6468,14 +6449,8 @@ var TRANSLATIONS = {
     approval_badge_approved:'Approved',
     approval_badge_rejected:'Rejected',
     approval_badge_changed:'Changed since approval',
-    approval_review_title:'Review approval request',
-    approval_review_period:'Period',
-    approval_review_worker:'Worker',
-    approval_approve_btn:'Approve',
-    approval_reject_btn:'Reject',
     approval_code_prompt:'Enter the shared approval code',
     approval_code_missing:'Set a shared approval code in Settings first.',
-    approval_response_downloaded:'Response file downloaded. Send it back to the worker.',
     approval_code_mismatch:'The code in this response does not match your configured code. The approval was not applied.',
     approval_applied_approved:'Month approved by',
     approval_applied_rejected:'Month rejected by',
@@ -6880,9 +6855,6 @@ var TRANSLATIONS = {
     approval_card:'Aprobaci\u00f3n',
     approval_hint:'Ya no hace falta c\u00f3digo \u2014 importa abajo el archivo de respuesta de tu presidente y se aplicar\u00e1 autom\u00e1ticamente.',
     approval_code_lbl:'C\u00f3digo de aprobaci\u00f3n compartido',
-    approval_as_leader_title:'Como l\u00edder: revisar una solicitud',
-    approval_as_leader_hint:'Importa el archivo de solicitud de aprobaci\u00f3n que recibiste de un colaborador.',
-    approval_import_request_btn:'Importar solicitud',
     approval_as_worker_title:'Como colaborador: procesar una respuesta',
     approval_as_worker_hint:'Importa el archivo de respuesta que recibiste de tu l\u00edder.',
     approval_import_response_btn:'Importar respuesta',
@@ -6891,14 +6863,8 @@ var TRANSLATIONS = {
     approval_badge_approved:'Aprobado',
     approval_badge_rejected:'Rechazado',
     approval_badge_changed:'Modificado desde la aprobación',
-    approval_review_title:'Revisar solicitud de aprobación',
-    approval_review_period:'Período',
-    approval_review_worker:'Colaborador',
-    approval_approve_btn:'Aprobar',
-    approval_reject_btn:'Rechazar',
     approval_code_prompt:'Introduce el código de aprobación compartido',
     approval_code_missing:'Configura primero un código de aprobación compartido en Ajustes.',
-    approval_response_downloaded:'Archivo de respuesta descargado. Envíalo de vuelta al colaborador.',
     approval_code_mismatch:'El código de esta respuesta no coincide con el tuyo. La aprobación no se aplicó.',
     approval_applied_approved:'Mes aprobado por',
     approval_applied_rejected:'Mes rechazado por',
@@ -7099,9 +7065,6 @@ var TRANSLATIONS = {
     approval_card:'Approbation',
     approval_hint:'Plus besoin de code — importez le fichier de réponse de votre président ci-dessous, il est appliqué automatiquement.',
     approval_code_lbl:'Code d\'approbation partagé',
-    approval_as_leader_title:'En tant que responsable : examiner une demande',
-    approval_as_leader_hint:'Importez le fichier de demande d\'approbation reçu d\'un collaborateur.',
-    approval_import_request_btn:'Importer la demande',
     approval_as_worker_title:'En tant que collaborateur : traiter une réponse',
     approval_as_worker_hint:'Importez le fichier de réponse reçu de votre responsable.',
     approval_import_response_btn:'Importer la réponse',
@@ -7110,14 +7073,8 @@ var TRANSLATIONS = {
     approval_badge_approved:'Approuvé',
     approval_badge_rejected:'Rejeté',
     approval_badge_changed:'Modifié depuis l\'approbation',
-    approval_review_title:'Examiner la demande d\'approbation',
-    approval_review_period:'Période',
-    approval_review_worker:'Collaborateur',
-    approval_approve_btn:'Approuver',
-    approval_reject_btn:'Rejeter',
     approval_code_prompt:'Entrez le code d\'approbation partagé',
     approval_code_missing:'Définissez d\'abord un code d\'approbation partagé dans les Paramètres.',
-    approval_response_downloaded:'Fichier de réponse téléchargé. Renvoyez-le au collaborateur.',
     approval_code_mismatch:'Le code de cette réponse ne correspond pas au vôtre. L\'approbation n\'a pas été appliquée.',
     approval_applied_approved:'Mois approuvé par',
     approval_applied_rejected:'Mois rejeté par',
@@ -7233,9 +7190,6 @@ var TRANSLATIONS = {
     approval_card:'Genehmigung',
     approval_hint:'Kein Code mehr nötig — importieren Sie unten die Antwortdatei Ihres Vorsitzenden, sie wird automatisch angewendet.',
     approval_code_lbl:'Gemeinsamer Genehmigungscode',
-    approval_as_leader_title:'Als Leiter: Anfrage prüfen',
-    approval_as_leader_hint:'Importieren Sie die Genehmigungsanfrage-Datei, die Sie von einem Mitarbeiter erhalten haben.',
-    approval_import_request_btn:'Anfrage importieren',
     approval_as_worker_title:'Als Mitarbeiter: Antwort verarbeiten',
     approval_as_worker_hint:'Importieren Sie die Antwortdatei, die Sie von Ihrem Leiter erhalten haben.',
     approval_import_response_btn:'Antwort importieren',
@@ -7244,14 +7198,8 @@ var TRANSLATIONS = {
     approval_badge_approved:'Genehmigt',
     approval_badge_rejected:'Abgelehnt',
     approval_badge_changed:'Seit Genehmigung geändert',
-    approval_review_title:'Genehmigungsanfrage prüfen',
-    approval_review_period:'Zeitraum',
-    approval_review_worker:'Mitarbeiter',
-    approval_approve_btn:'Genehmigen',
-    approval_reject_btn:'Ablehnen',
     approval_code_prompt:'Geben Sie den gemeinsamen Genehmigungscode ein',
     approval_code_missing:'Legen Sie zuerst einen gemeinsamen Genehmigungscode in den Einstellungen fest.',
-    approval_response_downloaded:'Antwortdatei heruntergeladen. Senden Sie sie an den Mitarbeiter zurück.',
     approval_code_mismatch:'Der Code in dieser Antwort stimmt nicht mit Ihrem eingestellten Code überein. Die Genehmigung wurde nicht angewendet.',
     approval_applied_approved:'Monat genehmigt von',
     approval_applied_rejected:'Monat abgelehnt von',
@@ -7379,9 +7327,6 @@ var TRANSLATIONS = {
     approval_card:'Aprobare',
     approval_hint:'Nu mai este nevoie de cod — importă mai jos fișierul de răspuns de la președintele tău și se aplică automat.',
     approval_code_lbl:'Cod de aprobare comun',
-    approval_as_leader_title:'Ca lider: analizează o cerere',
-    approval_as_leader_hint:'Importă fișierul de cerere de aprobare primit de la un colaborator.',
-    approval_import_request_btn:'Importă cererea',
     approval_as_worker_title:'Ca colaborator: procesează un răspuns',
     approval_as_worker_hint:'Importă fișierul de răspuns primit de la liderul tău.',
     approval_import_response_btn:'Importă răspunsul',
@@ -7390,14 +7335,8 @@ var TRANSLATIONS = {
     approval_badge_approved:'Aprobat',
     approval_badge_rejected:'Respins',
     approval_badge_changed:'Modificat după aprobare',
-    approval_review_title:'Analizează cererea de aprobare',
-    approval_review_period:'Perioadă',
-    approval_review_worker:'Colaborator',
-    approval_approve_btn:'Aprobă',
-    approval_reject_btn:'Respinge',
     approval_code_prompt:'Introdu codul de aprobare comun',
     approval_code_missing:'Stabilește mai întâi un cod de aprobare comun în Setări.',
-    approval_response_downloaded:'Fișierul de răspuns a fost descărcat. Trimite-l înapoi colaboratorului.',
     approval_code_mismatch:'Codul din acest răspuns nu corespunde cu al tău. Aprobarea nu a fost aplicată.',
     approval_applied_approved:'Lună aprobată de',
     approval_applied_rejected:'Lună respinsă de',
@@ -7522,9 +7461,6 @@ var TRANSLATIONS = {
     approval_card:'Jóváhagyás',
     approval_hint:'Nincs többé szükség kódra — importáld lent az elnöködtől kapott válaszfájlt, és automatikusan alkalmazásra kerül.',
     approval_code_lbl:'Közös jóváhagyási kód',
-    approval_as_leader_title:'Vezetőként: kérés elbírálása',
-    approval_as_leader_hint:'Importáld a jóváhagyási kérés fájlt, amelyet egy munkatárstól kaptál.',
-    approval_import_request_btn:'Kérés importálása',
     approval_as_worker_title:'Munkatársként: válasz feldolgozása',
     approval_as_worker_hint:'Importáld a válaszfájlt, amelyet a vezetődtől kaptál vissza.',
     approval_import_response_btn:'Válasz importálása',
@@ -7533,14 +7469,8 @@ var TRANSLATIONS = {
     approval_badge_approved:'Jóváhagyva',
     approval_badge_rejected:'Elutasítva',
     approval_badge_changed:'Jóváhagyás óta módosítva',
-    approval_review_title:'Jóváhagyási kérés elbírálása',
-    approval_review_period:'Időszak',
-    approval_review_worker:'Munkatárs',
-    approval_approve_btn:'Jóváhagyás',
-    approval_reject_btn:'Elutasítás',
     approval_code_prompt:'Add meg a közös jóváhagyási kódot',
     approval_code_missing:'Először állíts be egy közös jóváhagyási kódot a Beállításokban.',
-    approval_response_downloaded:'A válaszfájl letöltve. Küldd vissza a munkatársnak.',
     approval_code_mismatch:'A válaszban lévő kód nem egyezik a beállítottal. A jóváhagyás nem lett alkalmazva.',
     approval_applied_approved:'Hónap jóváhagyva, jóváhagyta:',
     approval_applied_rejected:'Hónap elutasítva, elutasította:',
@@ -7671,9 +7601,6 @@ var TRANSLATIONS = {
     approval_card:'Одобрение',
     approval_hint:'Код больше не нужен — импортируйте ниже файл ответа от вашего президента, и он применится автоматически.',
     approval_code_lbl:'Общий код одобрения',
-    approval_as_leader_title:'Как руководитель: рассмотреть запрос',
-    approval_as_leader_hint:'Импортируйте файл запроса на одобрение, полученный от сотрудника.',
-    approval_import_request_btn:'Импортировать запрос',
     approval_as_worker_title:'Как сотрудник: обработать ответ',
     approval_as_worker_hint:'Импортируйте файл ответа, полученный от вашего руководителя.',
     approval_import_response_btn:'Импортировать ответ',
@@ -7682,14 +7609,8 @@ var TRANSLATIONS = {
     approval_badge_approved:'Одобрено',
     approval_badge_rejected:'Отклонено',
     approval_badge_changed:'Изменено после одобрения',
-    approval_review_title:'Рассмотреть запрос на одобрение',
-    approval_review_period:'Период',
-    approval_review_worker:'Сотрудник',
-    approval_approve_btn:'Одобрить',
-    approval_reject_btn:'Отклонить',
     approval_code_prompt:'Введите общий код одобрения',
     approval_code_missing:'Сначала задайте общий код одобрения в Настройках.',
-    approval_response_downloaded:'Файл ответа загружен. Отправьте его обратно сотруднику.',
     approval_code_mismatch:'Код в этом ответе не совпадает с вашим. Одобрение не было применено.',
     approval_applied_approved:'Месяц одобрен',
     approval_applied_rejected:'Месяц отклонён',
@@ -7815,9 +7736,6 @@ var TRANSLATIONS = {
     approval_card:'Approvazione',
     approval_hint:'Non serve più alcun codice — importa qui sotto il file di risposta del tuo presidente e verrà applicato automaticamente.',
     approval_code_lbl:'Codice di approvazione condiviso',
-    approval_as_leader_title:'Come leader: esamina una richiesta',
-    approval_as_leader_hint:'Importa il file di richiesta di approvazione ricevuto da un collaboratore.',
-    approval_import_request_btn:'Importa richiesta',
     approval_as_worker_title:'Come collaboratore: elabora una risposta',
     approval_as_worker_hint:'Importa il file di risposta ricevuto dal tuo leader.',
     approval_import_response_btn:'Importa risposta',
@@ -7826,14 +7744,8 @@ var TRANSLATIONS = {
     approval_badge_approved:'Approvato',
     approval_badge_rejected:'Respinto',
     approval_badge_changed:'Modificato dopo l\'approvazione',
-    approval_review_title:'Esamina richiesta di approvazione',
-    approval_review_period:'Periodo',
-    approval_review_worker:'Collaboratore',
-    approval_approve_btn:'Approva',
-    approval_reject_btn:'Respingi',
     approval_code_prompt:'Inserisci il codice di approvazione condiviso',
     approval_code_missing:'Imposta prima un codice di approvazione condiviso in Impostazioni.',
-    approval_response_downloaded:'File di risposta scaricato. Rimandalo al collaboratore.',
     approval_code_mismatch:'Il codice in questa risposta non corrisponde al tuo. L\'approvazione non è stata applicata.',
     approval_applied_approved:'Mese approvato da',
     approval_applied_rejected:'Mese respinto da',
@@ -7955,9 +7867,6 @@ var TRANSLATIONS = {
     approval_card:'Aprovação',
     approval_hint:'Já não é necessário nenhum código — importe abaixo o ficheiro de resposta do seu presidente e será aplicado automaticamente.',
     approval_code_lbl:'Código de aprovação partilhado',
-    approval_as_leader_title:'Como líder: analisar um pedido',
-    approval_as_leader_hint:'Importe o ficheiro de pedido de aprovação que recebeu de um colaborador.',
-    approval_import_request_btn:'Importar pedido',
     approval_as_worker_title:'Como colaborador: processar uma resposta',
     approval_as_worker_hint:'Importe o ficheiro de resposta que recebeu do seu líder.',
     approval_import_response_btn:'Importar resposta',
@@ -7966,14 +7875,8 @@ var TRANSLATIONS = {
     approval_badge_approved:'Aprovado',
     approval_badge_rejected:'Rejeitado',
     approval_badge_changed:'Alterado desde a aprovação',
-    approval_review_title:'Analisar pedido de aprovação',
-    approval_review_period:'Período',
-    approval_review_worker:'Colaborador',
-    approval_approve_btn:'Aprovar',
-    approval_reject_btn:'Rejeitar',
     approval_code_prompt:'Introduza o código de aprovação partilhado',
     approval_code_missing:'Defina primeiro um código de aprovação partilhado nas Definições.',
-    approval_response_downloaded:'Ficheiro de resposta descarregado. Envie-o de volta ao colaborador.',
     approval_code_mismatch:'O código nesta resposta não corresponde ao seu. A aprovação não foi aplicada.',
     approval_applied_approved:'Mês aprovado por',
     approval_applied_rejected:'Mês rejeitado por',
@@ -22956,68 +22859,6 @@ function exportApprovalRequest(prefs){
   setApprovalForMonth(ymKey,{status:'pending',workerName:workerName,submittedAt:Date.now()});
   save();
   renderApprovalStatusBadge();
-}
-function handleApprovalRequestFile(event){
-  var file=event.target.files&&event.target.files[0];
-  if(!file)return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    var data=null;
-    try{data=JSON.parse(e.target.result);}catch(err){data=null;}
-    if(!data||data._type!=='ZDA_approval_request'){
-      showApprovalImportResult('err',t('approval_invalid_file')||'Invalid file');
-      return;
-    }
-    openApprovalReviewModal(data);
-  };
-  reader.readAsText(file);
-  event.target.value='';
-}
-var _pendingApprovalRequest=null;
-function openApprovalReviewModal(data){
-  _pendingApprovalRequest=data;
-  var byAardRows=Object.keys(data.byAard||{}).map(function(a){
-    var v=data.byAard[a]||{};
-    return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--text2)"><span>'+getAardLabel(a)+'</span><span>'+(v.uren||0).toFixed(1)+t('hours_abbr')+(v.km?' &middot; '+v.km+distUnit():'')+'</span></div>';
-  }).join('');
-  var h='<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>';
-  h+='<div style="font-size:15px;font-weight:700;margin-bottom:12px">'+(t('approval_review_title')||'Review approval request')+'</div>';
-  h+='<div style="font-size:13px;margin-bottom:4px"><strong>'+(t('approval_review_worker')||'Worker')+':</strong> '+(data.worker||'')+'</div>';
-  h+='<div style="font-size:13px;margin-bottom:10px"><strong>'+(t('approval_review_period')||'Period')+':</strong> '+(data.monthLabel||data.ym||'')+'</div>';
-  h+='<div style="background:var(--brand-light);border-radius:8px;padding:10px;margin-bottom:14px">';
-  h+='<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px"><span>'+(t('rapport_grand_hours')||'Total hours')+'</span><span>'+((data.totals&&data.totals.uren)||0).toFixed(1)+'u</span></div>';
-  h+=byAardRows;
-  h+='</div>';
-  h+='<div style="display:flex;gap:8px">';
-  h+='<button class="btn danger sm" onclick="respondToApprovalRequest(false)" style="flex:1">'+(t('approval_reject_btn')||'Reject')+'</button>';
-  h+='<button class="btn primary sm" onclick="respondToApprovalRequest(true)" style="flex:1">'+(t('approval_approve_btn')||'Approve')+'</button>';
-  h+='</div>';
-  h+='<button class="btn" onclick="closeModals()" style="width:100%;margin-top:8px">'+t('cancel_btn')+'</button>';
-  showModal(h);
-}
-function respondToApprovalRequest(approved){
-  var data=_pendingApprovalRequest;
-  if(!data)return;
-  var approverName=(db.settings&&db.settings.naam)||'';
-  var resp={
-    _type:'ZDA_approval_response',
-    _version:1,
-    ym:data.ym,
-    monthLabel:data.monthLabel,
-    worker:data.worker,
-    approver:approverName,
-    approved:!!approved,
-    respondedAt:Date.now()
-  };
-  var blob=new Blob([JSON.stringify(resp,null,2)],{type:'application/json'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  var safeName=(data.worker||'worker').replace(/[^a-z0-9]/gi,'_');
-  a.download='ZDA_goedkeuring_antwoord_'+safeName+'_'+data.ym+'.json';
-  a.click();
-  closeModals();
-  showApprovalImportResult('ok',t('approval_response_downloaded')||'Response file downloaded.');
-  _pendingApprovalRequest=null;
 }
 function handleApprovalResponseFile(event){
   var file=event.target.files&&event.target.files[0];
