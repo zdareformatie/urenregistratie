@@ -412,6 +412,11 @@ html.dark .settings-box{border-color:rgba(255,255,255,.06)}
 }
 .activity-card{background:var(--surface);border-radius:10px;margin-bottom:10px;overflow:hidden;box-shadow:none}
 .activity-card:last-child{margin-bottom:0}
+/* Brief gray flash used to confirm "this is the entry you jumped to" (see
+   jumpToLogboek) - a scroll alone gives no feedback about which of several
+   same-day rows is actually the target, so this fades in then out on the
+   matched card right before its edit modal opens. */
+.activity-card.log-jump-highlight{background:var(--surface2)!important;transition:background 1s ease}
 .activity-card-inner{display:flex;align-items:stretch}
 .ac-stripe{width:3px;flex-shrink:0}
 .ac-body{flex:1;padding:9px 11px;min-width:0}
@@ -9865,12 +9870,35 @@ function ssAddRow(){
   }
 }
 
-function jumpToLogboek(dateOrMonth){
+// `entryId` is optional - when given (e.g. from the Rapport entry-summary
+// popup's "Open in logboek" button), this doesn't just land on the right
+// month anymore: it switches to the Formulier list view (data-entry-id only
+// exists on those cards, not on spreadsheet rows), scrolls the matching
+// card into view, flashes it gray for a moment so it's obvious which of
+// several same-day entries is the one you tapped, then actually opens it -
+// the edit modal for a normal entry, or the multi-day span summary popup
+// when the entry got collapsed into one of those (see collapseMultiDaySpans
+// and its data-entry-ids attribute below). Previously this only scrolled
+// near the date and left the person to find and open the entry themselves.
+function jumpToLogboek(dateOrMonth,entryId){
   var month=dateOrMonth&&dateOrMonth.length>7?dateOrMonth.substring(0,7):dateOrMonth;
   navTo('log');
   setTimeout(function(){
+    if(entryId&&logMode==='spreadsheet')logMode='formulier';
     var sel=document.getElementById('log-filter-month');
-    if(sel){sel.value=month;renderLog();}
+    if(sel){sel.value=month;}
+    renderLog();
+    if(!entryId)return;
+    var el=document.querySelector('[data-entry-id="'+entryId+'"]')||document.querySelector('[data-entry-ids~="'+entryId+'"]');
+    if(!el)return;
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.classList.add('log-jump-highlight');
+    setTimeout(function(){
+      el.classList.remove('log-jump-highlight');
+      var idsAttr=el.getAttribute('data-entry-ids');
+      if(idsAttr)openMultiDaySpanSummary(idsAttr.split(' '),'entries');
+      else openEditEntryModal(entryId);
+    },550);
   },80);
 }
 
@@ -15208,7 +15236,7 @@ function _renderLogInner(){
       if(e._isMultiDaySpan){
         const spanIdsJson=JSON.stringify(e._multiDayIds).replace(/'/g,'&#39;');
         const spanLbl=multiDaySpanLabel(e._multiDayFrom,e._multiDayTo);
-        return`<div class="activity-card">
+        return`<div class="activity-card" data-entry-id="${e.id}" data-entry-ids="${e._multiDayIds.join(' ')}">
         <div class="activity-card-inner">
           <div class="ac-body" style="cursor:pointer" onclick="openMultiDaySpanSummary(${spanIdsJson},'entries')">
             <div class="ac-top">
@@ -15221,7 +15249,7 @@ function _renderLogInner(){
         </div>
       </div>`;
       }
-      return`<div class="activity-card">
+      return`<div class="activity-card" data-entry-id="${e.id}">
         <div class="activity-card-inner">
           <div class="ac-body">
             <div class="ac-top">
@@ -24210,7 +24238,7 @@ function openRapportEntrySummary(entryId){
   }
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
   if(naam)h+='<button class="btn sm" style="flex:1 1 auto" onclick="closeModals();openCursistByNaam(\''+naam.replace(/'/g,"\\'")+'\')">'+toContactLbl+'</button>';
-  h+='<button class="btn sm" style="flex:1 1 auto" onclick="closeModals();jumpToLogboek(\''+e.datum+'\')">'+toLogLbl+'</button>';
+  h+='<button class="btn sm" style="flex:1 1 auto" onclick="closeModals();jumpToLogboek(\''+e.datum+'\','+ssIdArg(e.id)+')">'+toLogLbl+'</button>';
   h+='<button class="btn sm primary" style="flex:1 1 auto" onclick="closeModals()">'+closeLbl+'</button>';
   h+='</div>';
   showModal(h);
