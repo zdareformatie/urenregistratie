@@ -18248,7 +18248,16 @@ function _buildRapportInner(){
   const RP_CONTACT_SECTION_CATS=['Bijbelstudie geven','Pastoraal contact','Pastoraal werk','Bezoek'];
   const contactSectionEntries=data.filter(e=>RP_CONTACT_SECTION_CATS.indexOf(e.categorie)>=0);
   const byCursist={};
-  contactSectionEntries.forEach(e=>{const k=e.cursistNaam||'Onbekend';if(!byCursist[k])byCursist[k]=[];byCursist[k].push(e);});
+  contactSectionEntries.forEach(e=>{
+    // Leden (church members) aren't "cursisten" being guided/mentored - a
+    // pastoral visit or contact logged against a member shouldn't inflate
+    // the "Cursisten begeleid" (students guided) count or clutter the
+    // per-student Bijbelstudies overview, which is meant for actual
+    // students/interested people, not the membership.
+    var cuObj=e.cursistId?(db.cursisten||[]).find(c=>String(c.id)===String(e.cursistId)):null;
+    if(cuObj&&cuObj.type==='lid')return;
+    const k=e.cursistNaam||'Onbekend';if(!byCursist[k])byCursist[k]=[];byCursist[k].push(e);
+  });
 
   // Day grouping. Tie-break same-day entries on id (=creation order), same
   // as the spreadsheet already does (see ssIdCompare) - otherwise same-day
@@ -19070,6 +19079,12 @@ function _buildRapportInner(){
     ${Object.entries(byAard).filter(([,v])=>v.kosten>0).map(([aard,v])=>`<div class="rp-km-row"><div class="rp-km-label">${getAardLabel(aard)}</div><div class="rp-km-val">${currencySymbol()}${v.kosten.toFixed(2).replace('.',',')}</div></div>`).join('')}
     ${!Object.entries(byAard).some(([,v])=>v.kosten>0)?`<div style="font-size:7pt;color:#B45309">${LANG==='en'?'No expenses':LANG==='es'?'Sin gastos':LANG==='fr'?'Pas de frais':LANG==='de'?'Keine Ausgaben':LANG==='ru'?'Нет расходов':LANG==='it'?'Nessuna spesa':LANG==='pt'?'Sem despesas':'Geen onkosten'}</div>`:''}
   </div>
+  <div class="rp-km-section rp-sec-km rp-sec-kosten" style="border-top:1pt solid #333;padding-top:5pt">
+    <div class="rp-km-headline">
+      <div class="rp-sh" style="margin:0">${LANG==='en'?'Total — kilometers + expenses':LANG==='es'?'Total — kilómetros + gastos':LANG==='fr'?'Total — kilomètres + frais':LANG==='de'?'Gesamt — Kilometer + Ausgaben':LANG==='ro'?'Total — kilometri + cheltuieli':LANG==='hu'?'Összesen — kilométer + költségek':LANG==='ru'?'Итого — километры + расходы':LANG==='it'?'Totale — chilometri + spese':LANG==='pt'?'Total — quilómetros + despesas':'Totaal — kilometers + onkosten'}</div>
+      <div class="rp-km-total">${currencySymbol()}${(totalKm*getKmRate(rapportYear)+totalKosten).toFixed(2).replace('.',',')}</div>
+    </div>
+  </div>
   <div class="rp-page-footer"><span>${s.gemeente||'ZDAreformatie'} &middot; ${s.naam||''}</span><span>${maand}</span></div>
 </div>
 
@@ -19318,6 +19333,7 @@ ${(function(){
       const datum=blk.datum,es=blk.entries;
       const dayT=es.reduce((t,e)=>t+entryUren(e),0);
       const dayKm=es.reduce((t,e)=>t+(parseFloat(e.km)||0),0);
+      const dayKosten=es.reduce((t,e)=>t+(parseFloat(e.kosten)||0),0);
       const dateShort=parseLocalDate(datum).toLocaleDateString(getLocale(),{day:'numeric',month:'short'});
       // One row per activity, in original order - no more grouping by aard.
       // Date is its own leading column now (see .rp-act-r3-date), printed
@@ -19335,13 +19351,22 @@ ${(function(){
         const displayU=isNaN(rawU)||rawU<0||rawU>24?'&mdash;':(rawU%1===0?rawU.toString():rawU.toFixed(2).replace(/0+$/,'').replace(/\.$/,''));
         const rawKm=parseFloat(e.km);
         const displayKm=!isNaN(rawKm)&&rawKm>0?rawKm:null;
+        // Expenses (Kosten) previously had no column of their own in the
+        // Daily Timeline - an entry logged purely as an expense (0 hours,
+        // e.g. "Kosten gemaakt tbv de app") showed "0u" and no amount at
+        // all, so the treasurer had no way to see the total without reading
+        // the free-text note. Shown in the same km/kosten column since an
+        // entry normally carries one or the other, not both.
+        const rawKosten=parseFloat(e.kosten);
+        const displayKosten=!isNaN(rawKosten)&&rawKosten>0?rawKosten:null;
+        const kmKostenTxt=[displayKm?displayKm+distUnit():'',displayKosten?currencySymbol()+displayKosten.toFixed(2).replace('.',','):''].filter(Boolean).join(' · ');
         const name=entryDisplayName(e);
         const nameAnon=entryDisplayNameAnon(e);
         return`<div class="rp-act-row3 rp-sec-timeline-detail">
               <div class="rp-act-r3-date">${idx===0?dateShort:''}</div>
               <div class="rp-act-r3-cat"><div class="rp-act-group-bar" style="background:${color}"></div><span class="rp-act-r3-cat-txt">${catLabel}</span></div>
               <div class="rp-act-r3-desc"><span class="rp-name-real">${name}</span><span class="rp-name-anon">${nameAnon}</span>${(e.opmerking&&e.notitieDelen===true)?' <span class="rp-act-r3-note">— '+escapeHtml(e.opmerking)+'</span>':''}</div>
-              <div class="rp-act-r3-km">${displayKm?displayKm+distUnit():''}</div>
+              <div class="rp-act-r3-km">${kmKostenTxt}</div>
               <div class="rp-act-r3-hrs">${displayU}${t('hours_abbr')}</div>
               <div class="rp-act-r3-total"></div>
             </div>`;
@@ -19354,7 +19379,7 @@ ${(function(){
         <div class="rp-act-r3-date"></div>
         <div class="rp-act-r3-cat"></div>
         <div class="rp-act-r3-desc">${t('rp_total_label')}</div>
-        <div class="rp-act-r3-km">${dayKm>0?Math.round(dayKm)+distUnit():''}</div>
+        <div class="rp-act-r3-km">${[dayKm>0?Math.round(dayKm)+distUnit():'',dayKosten>0?currencySymbol()+dayKosten.toFixed(2).replace('.',','):''].filter(Boolean).join(' · ')}</div>
         <div class="rp-act-r3-hrs"></div>
         <div class="rp-act-r3-total">${dayT.toFixed(1)}${t('hours_abbr')}</div>
       </div>`:''}
