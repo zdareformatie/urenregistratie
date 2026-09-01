@@ -5884,6 +5884,9 @@ const DRIVE_FILE_NAME='ZDA_Urenregistratie_'+new Date().getFullYear()+'.json';
 // it), not commit messages.
 const CHANGELOG=[
   {date:'2026-09-01',items:[
+    {nl:'Contactvelden die naar de voorzitter-app worden gestuurd zijn aangevuld: "Andere werker", Geloofsovertuiging, Niveau en Highlights ontbraken daar nog en komen nu goed aan.',en:'Contact fields sent to the president app have been filled out: "Andere werker" (another worker\'s contact), Faith background, Level, and Highlights were missing there and now come through correctly.',es:'Se han completado los campos de contacto que se envían a la app del presidente: "Otro trabajador", Creencia, Nivel e Highlights faltaban ahí y ahora llegan correctamente.',fr:'Les champs de contact envoyés vers l\'app du président ont été complétés : « Autre ouvrier », Croyance, Niveau et Highlights y manquaient et arrivent désormais correctement.',de:'Die an die Präsidenten-App gesendeten Kontaktfelder wurden ergänzt: „Anderer Mitarbeiter", Glaubensrichtung, Niveau und Highlights fehlten dort noch und kommen jetzt korrekt an.',ro:'Câmpurile de contact trimise către aplicația președintelui au fost completate: „Alt lucrător”, Credință, Nivel și Highlights lipseau acolo și acum ajung corect.',hu:'A Elnök alkalmazásba küldött kapcsolattartási mezők kiegészültek: a „Másik munkás”, Hitvallás, Szint és Highlights mezők hiányoztak onnan, mostantól helyesen megérkeznek.',ru:'Поля контактов, отправляемые в приложение президента, дополнены: «Другой работник», Вероисповедание, Уровень и Highlights там отсутствовали и теперь передаются корректно.',it:'I campi contatto inviati all\'app del presidente sono stati completati: "Altro operaio", Credo, Livello e Highlights mancavano lì e ora arrivano correttamente.',pt:'Os campos de contato enviados ao app do presidente foram completados: "Outro obreiro", Crença, Nível e Highlights faltavam lá e agora chegam corretamente.'}
+  ]},
+  {date:'2026-09-01',items:[
     {nl:'Bij "Activiteit herhalen" staat nu een aanvinkvakje "Huidige tijd gebruiken": aangevinkt vult het automatisch de huidige tijd in (afgerond op het kwartier), uitgevinkt wordt er geen tijd ingevuld.',en:'"Repeat activity" now has a "Use current time" checkbox: checked auto-fills the current time (rounded to the quarter hour), unchecked leaves the time blank.',es:'"Repetir actividad" ahora tiene una casilla "Usar la hora actual": marcada, rellena automáticamente la hora actual (redondeada al cuarto de hora); desmarcada, deja la hora en blanco.',fr:'"Répéter l\'activité" a désormais une case "Utiliser l\'heure actuelle" : cochée, elle remplit automatiquement l\'heure actuelle (arrondie au quart d\'heure) ; décochée, l\'heure reste vide.',de:'"Aktivität wiederholen" hat jetzt ein Kästchen "Aktuelle Uhrzeit verwenden": aktiviert füllt es automatisch die aktuelle Uhrzeit ein (auf die Viertelstunde gerundet), deaktiviert bleibt die Uhrzeit leer.',ro:'"Repetă activitatea" are acum o căsuță "Folosește ora curentă": bifată, completează automat ora curentă (rotunjită la sfert de oră); debifată, ora rămâne necompletată.',hu:'A "Tevékenység megismétlése" mostantól tartalmaz egy "Jelenlegi idő használata" jelölőnégyzetet: bejelölve automatikusan kitölti a jelenlegi időt (negyedórára kerekítve), kijelölés nélkül az idő üresen marad.',ru:'В окне "Повторить занятие" теперь есть флажок "Использовать текущее время": если он отмечен, время автоматически заполняется текущим (округлённым до четверти часа), если снят — время остаётся пустым.',it:'"Ripeti attività" ora ha una casella "Usa l\'ora attuale": selezionata, compila automaticamente l\'ora attuale (arrotondata al quarto d\'ora); deselezionata, l\'ora resta vuota.',pt:'"Repetir atividade" agora tem uma caixa "Usar hora atual": marcada, preenche automaticamente a hora atual (arredondada ao quarto de hora); desmarcada, a hora fica em branco.'},
     {nl:'Het "Activiteit herhalen" venster staat nu in het midden van het scherm in plaats van onderaan.',en:'The "Repeat activity" popup is now centered on screen instead of anchored to the bottom.',es:'La ventana "Repetir actividad" ahora aparece centrada en la pantalla en lugar de anclada abajo.',fr:'La fenêtre "Répéter l\'activité" s\'affiche désormais au centre de l\'écran au lieu d\'être ancrée en bas.',de:'Das Fenster "Aktivität wiederholen" erscheint jetzt in der Bildschirmmitte statt unten fixiert.',ro:'Fereastra "Repetă activitatea" apare acum centrată pe ecran, nu ancorată jos.',hu:'A "Tevékenység megismétlése" ablak mostantól a képernyő közepén jelenik meg, nem alul rögzítve.',ru:'Окно "Повторить занятие" теперь отображается по центру экрана, а не закреплено внизу.',it:'La finestra "Ripeti attività" ora appare centrata sullo schermo invece che ancorata in basso.',pt:'A janela "Repetir atividade" agora aparece centralizada na tela em vez de fixada embaixo.'},
     {nl:'Bugfix: bij het herhalen van een activiteit met een datum in de toekomst werd de ingevulde tijd niet opgeslagen.',en:'Bugfix: when repeating an activity with a future date, the time entered wasn’t actually being saved.',es:'Corrección: al repetir una actividad con una fecha futura, la hora introducida no se guardaba realmente.',fr:'Correction : lors de la répétition d\'une activité avec une date future, l\'heure saisie n\'était en réalité pas enregistrée.',de:'Fehlerbehebung: Beim Wiederholen einer Aktivität mit einem zukünftigen Datum wurde die eingegebene Uhrzeit tatsächlich nicht gespeichert.',ro:'Remediere: la repetarea unei activități cu o dată viitoare, ora introdusă nu era de fapt salvată.',hu:'Hibajavítás: egy jövőbeli dátummal rendelkező tevékenység megismétlésekor a megadott idő valójában nem mentődött el.',ru:'Исправление: при повторении занятия с будущей датой введённое время на самом деле не сохранялось.',it:'Correzione: quando si ripeteva un\'attività con una data futura, l\'ora inserita non veniva effettivamente salvata.',pt:'Correção: ao repetir uma atividade com data futura, a hora inserida não estava realmente sendo salva.'},
@@ -21276,13 +21279,28 @@ function exportForPresident(prefs){
       // President app's combined Database view hide contacts the worker has
       // already archived/paused, same as the worker app's own Contacts tab
       // hides them from every normal view unless "archived" is picked.
-      status:cu.status||'actief'
+      status:cu.status||'actief',
+      // andereWerker: this contact is primarily another worker's
+      // responsibility (see getFollowUpUrgency above, which excludes them
+      // from THIS worker's own overdue nagging). Same pastoral-metadata
+      // category as contactFrequency/extraZorg - sent unconditionally so the
+      // President app's Database follow-up list can apply the same
+      // exclusion instead of flagging these contacts as overdue.
+      andereWerker:!!cu.andereWerker,
+      // Geloofsovertuiging / studieniveau - short structured fields (not
+      // free text), same category as gemeente/contactFrequency.
+      geloof:cu.geloof||'',
+      niveau:cu.niveau||''
     };
     // "Doopkandidaten" checkbox: only actually send this flag when it's
     // checked (default on) - it used to be included unconditionally.
     if(prefs.doop!==false)c.doopkandidaat=!!cu.doopkandidaat;
     if(prefs.contactPhone&&cu.tel&&includeContactDetails)c.tel=cu.tel;
     if(prefs.contactAddress&&includeContactDetails)c.adres=[cu.adres,[cu.postcode,cu.plaats].filter(Boolean).join(' '),cu.land].filter(Boolean).join(', ');
+    // Highlights/geschiedenis is free-text narrative about this contact
+    // (like opmerking), so it follows the same includeContactDetails opt-in
+    // as tel/adres rather than being sent unconditionally.
+    if(cu.highlightsGeschiedenis&&includeContactDetails)c.highlightsGeschiedenis=cu.highlightsGeschiedenis;
     return c;
   });
   // entries: gated by 'timeline' (include the raw activity log at all), each
