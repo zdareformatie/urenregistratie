@@ -18603,12 +18603,10 @@ function _buildRapportInner(){
     })()}
   </div>
   <div>
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px">
-      <div class="settings-section-title">${t('reiskosten')}</div>
-      <div style="font-size:13px;font-weight:700;color:var(--amber);white-space:nowrap">${t('rp_total_label')||'Totaal'}: ${currencySymbol()}${kmVergoeding}</div>
-    </div>
-    <div class="card">
-      <div style="display:flex;gap:16px;padding-bottom:6px;flex-wrap:wrap">
+    <div class="settings-section-title" style="margin-bottom:8px">${t('reiskosten')}</div>
+    <div class="card" style="position:relative">
+      <div style="position:absolute;top:10px;right:12px;font-size:13px;font-weight:700;color:var(--amber);white-space:nowrap">${t('rp_total_label')||'Totaal'}: ${currencySymbol()}${kmVergoeding}</div>
+      <div style="display:flex;gap:16px;padding-bottom:6px;padding-right:90px;flex-wrap:wrap">
         ${totalKm>0?`<div><div style="font-size:18px;font-weight:700;color:var(--amber)">${Math.round(totalKm)} km</div><div style="font-size:11px;color:var(--text3)">${t('totaal_km')}</div></div>`:''}
         ${totalKm>0?`<div><div style="font-size:18px;font-weight:700;color:var(--amber)">${currencySymbol()}${kmOnlyVergoeding}</div><div style="font-size:11px;color:var(--text3)">${t('vergoeding')}</div></div>`:''}
         ${totalKosten>0?`<div><div style="font-size:18px;font-weight:700;color:var(--amber)">${currencySymbol()}${totalKosten.toFixed(2).replace('.',',')}</div><div style="font-size:11px;color:var(--text3)">${t('col_kosten')||'Onkosten'}</div></div>`:''}
