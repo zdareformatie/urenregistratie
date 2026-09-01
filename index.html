@@ -19078,11 +19078,9 @@ function _buildRapportInner(){
     </div>
     ${Object.entries(byAard).filter(([,v])=>v.kosten>0).map(([aard,v])=>`<div class="rp-km-row"><div class="rp-km-label">${getAardLabel(aard)}</div><div class="rp-km-val">${currencySymbol()}${v.kosten.toFixed(2).replace('.',',')}</div></div>`).join('')}
     ${!Object.entries(byAard).some(([,v])=>v.kosten>0)?`<div style="font-size:7pt;color:#B45309">${LANG==='en'?'No expenses':LANG==='es'?'Sin gastos':LANG==='fr'?'Pas de frais':LANG==='de'?'Keine Ausgaben':LANG==='ru'?'Нет расходов':LANG==='it'?'Nessuna spesa':LANG==='pt'?'Sem despesas':'Geen onkosten'}</div>`:''}
-  </div>
-  <div class="rp-km-section rp-sec-km rp-sec-kosten" style="border-top:1pt solid #333;padding-top:5pt">
-    <div class="rp-km-headline">
-      <div class="rp-sh" style="margin:0">${LANG==='en'?'Total — kilometers + expenses':LANG==='es'?'Total — kilómetros + gastos':LANG==='fr'?'Total — kilomètres + frais':LANG==='de'?'Gesamt — Kilometer + Ausgaben':LANG==='ro'?'Total — kilometri + cheltuieli':LANG==='hu'?'Összesen — kilométer + költségek':LANG==='ru'?'Итого — километры + расходы':LANG==='it'?'Totale — chilometri + spese':LANG==='pt'?'Total — quilómetros + despesas':'Totaal — kilometers + onkosten'}</div>
-      <div class="rp-km-total">${currencySymbol()}${(totalKm*getKmRate(rapportYear)+totalKosten).toFixed(2).replace('.',',')}</div>
+    <div class="rp-km-row rp-sec-km rp-sec-kosten" style="border-top:.5pt solid #ddd;margin-top:3pt;padding-top:3pt;font-weight:700">
+      <div class="rp-km-label">${LANG==='en'?'Total — kilometers + expenses':LANG==='es'?'Total — kilómetros + gastos':LANG==='fr'?'Total — kilomètres + frais':LANG==='de'?'Gesamt — Kilometer + Ausgaben':LANG==='ro'?'Total — kilometri + cheltuieli':LANG==='hu'?'Összesen — kilométer + költségek':LANG==='ru'?'Итого — километры + расходы':LANG==='it'?'Totale — chilometri + spese':LANG==='pt'?'Total — quilómetros + despesas':'Totaal — kilometers + onkosten'}</div>
+      <div class="rp-km-val">${currencySymbol()}${(totalKm*getKmRate(rapportYear)+totalKosten).toFixed(2).replace('.',',')}</div>
     </div>
   </div>
   <div class="rp-page-footer"><span>${s.gemeente||'ZDAreformatie'} &middot; ${s.naam||''}</span><span>${maand}</span></div>
