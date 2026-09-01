@@ -1773,6 +1773,7 @@ input[type="radio"]:checked::after{content:'';position:absolute;inset:3px;border
       <div style="font-size:11px;color:var(--text3);margin-bottom:4px;line-height:1.5" id="about-org-full">International Missionary Society Seventh Day Adventist Church Reform Movement</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:2px" data-i18n="about_app_subtitle">Hour Registration App</div>
       <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:14px" id="about-version">v1.0.0 · 2026</div>
+      <button class="btn sm full" onclick="openChangelog()" style="margin-bottom:14px" data-i18n="updates_btn">Wat is er bijgewerkt?</button>
       <div style="font-size:11px;color:var(--text3);border-top:1px solid var(--border2);padding-top:12px;line-height:2">
         <span style="color:var(--text2);font-weight:500" data-i18n="dev_by">Ontwikkeld door:</span> Gabriel Porras<br>
         <span style="color:var(--text2);font-weight:500" data-i18n="tech_by">Technologie:</span> Claude AI (Anthropic)<br>
@@ -5868,6 +5869,27 @@ const GAPI_CLIENT_ID='568167692733-3j3a73j4v1jl63gdphk55v7gg94vsqmb.apps.googleu
 const APP_VERSION='1.0.0';
 const APP_YEAR=new Date().getFullYear();
 const DRIVE_FILE_NAME='ZDA_Urenregistratie_'+new Date().getFullYear()+'.json';
+// Dated changelog shown to workers via Settings > "Wat is er bijgewerkt?"
+// (openChangelog()). Add a new entry to the TOP of this array whenever a
+// worker-relevant change ships - most entries only need nl+en filled in,
+// tMap() falls back to nl for any language left out. IMPORTANT: items are
+// kept as raw {nl,en,...} maps here (NOT resolved via tMap() at this point
+// in the file) and only resolved with tMap() at render time inside
+// openChangelog() - resolving them here would freeze every entry to
+// whatever LANG happened to be when this script first ran (still
+// undefined/'nl' at this point, since LANG itself isn't set until further
+// down), so a worker who later switches language would keep seeing Dutch.
+// Keep entries short and in plain language (what changed / where to find
+// it), not commit messages.
+const CHANGELOG=[
+  {date:'2026-09-01',items:[
+    {nl:'Een invoer openen in het logboek toont nu eerst een kort overzicht van wat al is ingevuld, met "Meer weergeven" om het volledige formulier te openen.',en:'Opening an entry in the logbook now first shows a short summary of what’s already filled in, with "Show more" to open the full form.'},
+    {nl:'De kaart "Reiskosten" heet nu "Reis en andere kosten": km, vergoeding en overige kosten staan duidelijker naast elkaar met het totaal in de kaart.',en:'The "Travel costs" card is now called "Travel and other costs": km, reimbursement and other costs are laid out more clearly with the total shown on the card.'},
+    {nl:'Het rapportonderdeel "Bijbelstudies" heet nu "Bijbelstudies en Pastoraal werk" en toont nu ook contacten, bezoeken en pastoraal werk.',en:'The report section "Bible studies" is now called "Bible studies and Pastoral work" and now also includes contacts, visits and pastoral work.'},
+    {nl:'Reistijd van geïmporteerde reizen wordt nu correct als reistijd geteld in plaats van als gewerkte uren.',en:'Travel time from imported trips is now correctly counted as travel time instead of worked hours.'},
+    {nl:'"Open in logboek" vanuit het rapport opent nu echt de juiste invoer (kort gemarkeerd), in plaats van alleen in de buurt te scrollen.',en:'"Open in logbook" from the report now actually opens the specific entry (briefly highlighted), instead of only scrolling near it.'}
+  ]}
+];
 const UREN_CRIT=2088,VAKANTIE=192;
 function getVakantieUren(){return (db&&db.settings&&db.settings.goalVacationDays)?db.settings.goalVacationDays*8:VAKANTIE;}
 // Official Dutch "onbelaste kilometervergoeding" (tax-free km allowance) per calendar year.
@@ -6092,6 +6114,7 @@ var TRANSLATIONS = {
     export_csv:'Alles exporteren als CSV',
     clear_data:'Alle gegevens wissen',
     about_card:'Over deze app',
+    updates_btn:'Wat is er bijgewerkt?', updates_title:'Updates', updates_empty:'Nog geen updates vermeld.',
     dev_by:'Ontwikkeld door', support_by:'Ondersteuning',
     // Wizard
     new_activity:'Nieuwe activiteit',
@@ -6100,7 +6123,7 @@ var TRANSLATIONS = {
     // Modals
     add_cursist_title:'Cursist toevoegen', add_lid_title:'Lid toevoegen',
     add_cursist:'+ Cursist toevoegen', add_lid:'+ Lid toevoegen',
-    save_btn:'Opslaan', cancel_btn:'Annuleren', delete_btn:'Verwijder', save_as_new_btn:'Opslaan als nieuw',
+    save_btn:'Opslaan', cancel_btn:'Annuleren', close_btn:'Sluiten', delete_btn:'Verwijder', save_as_new_btn:'Opslaan als nieuw',
     edit_btn:'Bewerken',
     contact_edit:'Contactgegevens bewerken',
     name_req:'Naam *',
@@ -6447,12 +6470,13 @@ var TRANSLATIONS = {
     export_csv:'Export all as CSV',
     clear_data:'Clear all data',
     about_card:'About this app',
+    updates_btn:'What has been updated?', updates_title:'Updates', updates_empty:'No updates listed yet.',
     dev_by:'Developed by', support_by:'Support',
     new_activity:'New activity',
     autofill_lbl:'Auto-filled',
     autofill_clear:'Clear',
     add_cursist_title:'Add student', add_lid_title:'Add member',
-    save_btn:'Save', cancel_btn:'Cancel', delete_btn:'Delete', save_as_new_btn:'Save as new',
+    save_btn:'Save', cancel_btn:'Cancel', close_btn:'Close', delete_btn:'Delete', save_as_new_btn:'Save as new',
     edit_btn:'Edit',
     contact_edit:'Edit contact details',
     no_contact_info:'No contact details',
@@ -6869,12 +6893,13 @@ var TRANSLATIONS = {
     export_csv:'Exportar todo como CSV',
     clear_data:'Borrar todos los datos',
     about_card:'Acerca de esta app',
+    updates_btn:'¿Qué se ha actualizado?', updates_title:'Actualizaciones', updates_empty:'Aún no hay actualizaciones.',
     dev_by:'Desarrollado por', support_by:'Apoyo',
     new_activity:'Nueva actividad',
     autofill_lbl:'Autocompletado',
     autofill_clear:'Limpiar',
     add_cursist_title:'A\u00f1adir estudiante', add_lid_title:'A\u00f1adir miembro',
-    save_btn:'Guardar', cancel_btn:'Cancelar', delete_btn:'Eliminar', save_as_new_btn:'Guardar como nuevo',
+    save_btn:'Guardar', cancel_btn:'Cancelar', close_btn:'Cerrar', delete_btn:'Eliminar', save_as_new_btn:'Guardar como nuevo',
     edit_btn:'Editar',
     contact_edit:'Editar datos de contacto',
     no_contact_info:'Sin datos de contacto',
@@ -7101,7 +7126,7 @@ var TRANSLATIONS = {
     crit_hours:"Heures critères",
     hours_abbr:"h",goals_title:"Objectifs personnels",goals_empty:"Définir objectifs dans Paramètres.",goals_set:"Définir objectifs",goals_card:"Objectifs personnels",goal_studies_explain:"Compte chaque entrée enregistrée sous 'Étude biblique donnée' ce mois-ci.",goal_evang_explain:"Compte chaque entrée dans la catégorie Évangélisation ce mois-ci.",goal_uren_explain:"Additionne toutes les heures enregistrées ce mois-ci, y compris le temps de trajet.",goal_followup_explain:"Compte chaque contact unique que vous avez visité, appelé ou avec qui vous avez eu une étude biblique ce mois-ci.",
     add_cursist:"+ Ajouter contact",add_lid:"+ Ajouter membre",add_cursist_title:"Ajouter contact",add_lid_title:"Ajouter membre",
-    save_btn:"Enregistrer",cancel_btn:"Annuler",delete_btn:"Supprimer",edit_btn:"Modifier",save_as_new_btn:"Enregistrer comme nouveau",
+    save_btn:"Enregistrer",cancel_btn:"Annuler",close_btn:"Fermer",delete_btn:"Supprimer",edit_btn:"Modifier",save_as_new_btn:"Enregistrer comme nouveau",
     contact_edit:"Modifier coordonnées",name_req:"Nom *",address_lbl:"Adresse",city_lbl:"Ville",tel_lbl:"Téléphone",notes_lbl:"Remarques",postcode_lbl:"Code postal",country_lbl:"Pays",
     contact_freq_lbl:"Fréquence de contact",freq_none:"Non défini",freq_twiceweekly:"2x par semaine",freq_weekly:"Hebdomadaire",freq_biweekly:"Une semaine sur deux",freq_triweekly:"Toutes les trois semaines",freq_monthly:"Mensuel",freq_quarterly:"Trimestriel",freq_semester:"Semestriel",extra_zorg_lbl:"Besoin de soins particuliers",extra_zorg_badge:"Soins",andere_werker_lbl:"Sous la responsabilité d'un autre collègue",andere_werker_hint:"N'apparaîtra pas comme en retard pour le suivi, mais les visites que vous enregistrez comptent quand même.",geloof_lbl:"Conviction religieuse",geloof_ongelovig:"Incroyant",geloof_katholiek:"Catholique",geloof_protestant:"Protestant",geloof_moslim:"Musulman",geloof_adventist:"Adventiste",geloof_andere:"Autre",niveau_lbl:"Niveau",niveau_basis:"Base",niveau_medium:"Moyen",niveau_gevorderd:"Avancé",niveau_adventist:"Adventiste",niveau_gemengd:"Mixte",highlights_lbl:"Points marquants de l'historique",import_phone_contact_btn:"Importer depuis les contacts du téléphone",import_phone_contact_unsupported:"L'importation de contacts n'est prise en charge que sur Chrome pour Android.",
     no_contact_info:"Pas de coordonnées",lbl_studies:"Études",lbl_uren_stat:"Heures",lbl_themas:"Thèmes",
@@ -7169,7 +7194,7 @@ var TRANSLATIONS = {
     optional:'optionnel',
     wizard_choose_cat:'Choisir catégorie',days_taken:"jours pris",
     next_reminder_in:"Prochain rappel dans",minutes:"minutes",verse_title:"Verset du jour",demo_data:"Charger données démo",find_dupes_btn:"Rechercher les doublons",find_baddates_btn:"Rechercher les dates incorrectes",find_dupe_contacts_btn:"Rechercher les contacts en double",find_issues_lbl:"Rechercher et corriger",find_dupes_btn_short:"Entrées",find_baddates_btn_short:"Dates",find_dupe_contacts_btn_short:"Contacts",
-    export_csv:"Tout exporter en CSV",clear_data:"Effacer toutes les données",about_card:"À propos",dev_by:"Développé par",support_by:"Support",
+    export_csv:"Tout exporter en CSV",clear_data:"Effacer toutes les données",about_card:"À propos",updates_btn:"Quoi de neuf ?",updates_title:"Mises à jour",updates_empty:"Aucune mise à jour pour le moment.",dev_by:"Développé par",support_by:"Support",
     print_btn:"Imprimer / PDF",export_csv2:"Exporter CSV",print_pdf:"Imprimer / PDF",export_csv_btn:"Exporter CSV",
     signout_google:"Déconnexion Google",sync_now_btn:"Synchroniser maintenant",sync_now_syncing:"Synchronisation…",sync_now_done:"Synchronisé",sync_now_hint:"Récupère les dernières données de Drive et envoie les modifications locales. À faire si un autre appareil a récemment ajouté quelque chose.",force_update_btn:"Forcer la mise à jour",force_update_hint:"Efface les données temporaires de l'application et recharge la dernière version. Vos données restent en sécurité car elles sont stockées séparément. Faites cela si une mise à jour récente ne semble pas apparaître.",force_update_confirm:"Ceci efface les données temporaires de l'application et recharge la dernière version. Vos données restent en sécurité. Continuer ?",backup_download_btn:'Télécharger la sauvegarde complète',backup_restore_file_btn:'Restaurer depuis un fichier',
     drive_sign_in:"Connexion avec Google",
@@ -7235,7 +7260,7 @@ var TRANSLATIONS = {
     crit_hours:'Pflichtstunden',
     hours_abbr:'h',goals_title:'Persönliche Ziele',goals_empty:'Ziele in Einstellungen festlegen.',goals_set:'Ziele festlegen',goals_card:'Persönliche Ziele',goal_studies_explain:'Zählt jeden Eintrag unter \'Bibelstunde gehalten\' in diesem Monat.',goal_evang_explain:'Zählt jeden Eintrag in der Kategorie Evangelisation in diesem Monat.',goal_uren_explain:'Summiert alle erfassten Stunden dieses Monats, einschließlich Reisezeit.',goal_followup_explain:'Zählt jeden einzelnen Kontakt, den du diesen Monat besucht, angerufen oder mit dem du eine Bibelstunde hattest.',
     add_cursist:'+ Kontakt hinzufügen',add_lid:'+ Mitglied hinzufügen',add_cursist_title:'Kontakt hinzufügen',add_lid_title:'Mitglied hinzufügen',
-    save_btn:'Speichern',cancel_btn:'Abbrechen',save_as_new_btn:'Als neu speichern',
+    save_btn:'Speichern',cancel_btn:'Abbrechen',close_btn:'Schließen',save_as_new_btn:'Als neu speichern',
     contact_edit:'Kontaktdaten bearbeiten',name_req:'Name *',address_lbl:'Adresse',city_lbl:'Wohnort',tel_lbl:'Telefon',notes_lbl:'Bemerkungen',postcode_lbl:'Postleitzahl',country_lbl:'Land',
     contact_freq_lbl:'Kontakthäufigkeit',freq_none:'Nicht festgelegt',freq_twiceweekly:'2x pro Woche',freq_weekly:'Wöchentlich',freq_biweekly:'Alle zwei Wochen',freq_triweekly:'Alle drei Wochen',freq_monthly:'Monatlich',freq_quarterly:'Vierteljährlich',freq_semester:'Halbjährlich',extra_zorg_lbl:'Braucht besondere Fürsorge',extra_zorg_badge:'Fürsorge',andere_werker_lbl:'Verantwortung eines anderen Mitarbeiters',andere_werker_hint:'Erscheint nicht als überfällig für die Nachverfolgung, aber erfasste Besuche zählen trotzdem.',geloof_lbl:'Glaubensüberzeugung',geloof_ongelovig:'Ungläubig',geloof_katholiek:'Katholisch',geloof_protestant:'Protestantisch',geloof_moslim:'Muslimisch',geloof_adventist:'Adventist',geloof_andere:'Andere',niveau_lbl:'Niveau',niveau_basis:'Grundlagen',niveau_medium:'Mittel',niveau_gevorderd:'Fortgeschritten',niveau_adventist:'Adventist',niveau_gemengd:'Gemischt',highlights_lbl:'Highlights der Geschichte',import_phone_contact_btn:'Aus Telefonkontakten importieren',import_phone_contact_unsupported:'Das Importieren von Kontakten wird nur in Chrome unter Android unterstützt.',
     no_contact_info:'Keine Kontaktdaten',lbl_studies:'Studien',lbl_uren_stat:'Stunden',lbl_themas:'Themen',
@@ -7302,7 +7327,7 @@ var TRANSLATIONS = {
     optional:'optional',
     wizard_choose_cat:'Kategorie wählen',days_taken:'Tage genommen',
     next_reminder_in:'Nächste Erinnerung in',minutes:'Minuten',verse_title:'Tagesvers',demo_data:'Demodaten laden',find_dupes_btn:'Doppelte Einträge suchen',find_baddates_btn:'Fehlerhafte Daten suchen',find_dupe_contacts_btn:'Doppelte Kontakte suchen',find_issues_lbl:'Suchen & beheben',find_dupes_btn_short:'Einträge',find_baddates_btn_short:'Daten',find_dupe_contacts_btn_short:'Kontakte',
-    export_csv:'Alles als CSV exportieren',clear_data:'Alle Daten löschen',about_card:'Über diese App',dev_by:'Entwickelt von',support_by:'Unterstützung',
+    export_csv:'Alles als CSV exportieren',clear_data:'Alle Daten löschen',about_card:'Über diese App',updates_btn:'Was wurde aktualisiert?',updates_title:'Updates',updates_empty:'Noch keine Updates aufgeführt.',dev_by:'Entwickelt von',support_by:'Unterstützung',
     print_btn:'Drucken / PDF',export_csv2:'CSV exportieren',print_pdf:'Drucken / PDF',export_csv_btn:'CSV exportieren',
     signout_google:'Google abmelden',sync_now_btn:'Jetzt synchronisieren',sync_now_syncing:'Synchronisiere…',sync_now_done:'Synchronisiert',sync_now_hint:'Ruft die neuesten Daten von Drive ab und sendet lokale Änderungen zurück. Mach das, wenn ein anderes Gerät kürzlich etwas hinzugefügt hat.',force_update_btn:'Update erzwingen',force_update_hint:'Löscht temporäre App-Daten und lädt die neueste Version neu. Deine Daten bleiben sicher, da sie separat gespeichert werden. Mach das, wenn eine kürzliche Korrektur nicht angekommen zu sein scheint.',force_update_confirm:'Dies löscht temporäre App-Daten und lädt die neueste Version neu. Deine Daten bleiben sicher. Fortfahren?',backup_download_btn:'Vollständiges Backup herunterladen',backup_restore_file_btn:'Aus Datei wiederherstellen',
     drive_sign_in:'Mit Google anmelden',
@@ -7381,7 +7406,7 @@ var TRANSLATIONS = {
     crit_hours:'Ore criterii',
     hours_abbr:'h',goals_title:'Obiective personale',goals_empty:'Setează obiective în Setări.',goals_set:'Setează obiective',goals_card:'Obiective personale',goal_studies_explain:'Numără fiecare înregistrare cu categoria \'Studiu biblic susținut\' luna aceasta.',goal_evang_explain:'Numără fiecare înregistrare din categoria Evanghelizare luna aceasta.',goal_uren_explain:'Adună toate orele înregistrate luna aceasta, inclusiv timpul de deplasare.',goal_followup_explain:'Numără fiecare contact unic pe care l-ai vizitat, sunat sau cu care ai avut un studiu biblic luna aceasta.',
     add_cursist:'+ Adaugă contact',add_lid:'+ Adaugă membru',add_cursist_title:'Adaugă contact',add_lid_title:'Adaugă membru',
-    save_btn:'Salvează',cancel_btn:'Anulează',delete_btn:'Șterge',edit_btn:'Editează',save_as_new_btn:'Salvează ca nou',
+    save_btn:'Salvează',cancel_btn:'Anulează',close_btn:'Închide',delete_btn:'Șterge',edit_btn:'Editează',save_as_new_btn:'Salvează ca nou',
     contact_edit:'Editează date contact',name_req:'Nume *',address_lbl:'Adresă',city_lbl:'Localitate',tel_lbl:'Telefon',notes_lbl:'Observații',postcode_lbl:'Cod poștal',country_lbl:'Țară',
     contact_freq_lbl:'Frecvența contactului',freq_none:'Nesetat',freq_twiceweekly:'De 2 ori pe săptămână',freq_weekly:'Săptămânal',freq_biweekly:'La fiecare două săptămâni',freq_triweekly:'La fiecare trei săptămâni',freq_monthly:'Lunar',freq_quarterly:'Trimestrial',freq_semester:'Semestrial',extra_zorg_lbl:'Necesită îngrijire specială',extra_zorg_badge:'Îngrijire',andere_werker_lbl:'Responsabilitatea altui lucrător',andere_werker_hint:'Nu va apărea ca fiind restant pentru urmărire, dar vizitele înregistrate contează în continuare.',geloof_lbl:'Convingere religioasă',geloof_ongelovig:'Necredincios',geloof_katholiek:'Catolic',geloof_protestant:'Protestant',geloof_moslim:'Musulman',geloof_adventist:'Adventist',geloof_andere:'Altul',niveau_lbl:'Nivel',niveau_basis:'De bază',niveau_medium:'Mediu',niveau_gevorderd:'Avansat',niveau_adventist:'Adventist',niveau_gemengd:'Mixt',highlights_lbl:'Momente importante din istoric',import_phone_contact_btn:'Importă din contactele telefonului',import_phone_contact_unsupported:'Importul contactelor este acceptat doar în Chrome pe Android.',
     no_contact_info:'Fără date de contact',lbl_studies:'Studii',lbl_uren_stat:'Ore',lbl_themas:'Teme',
@@ -7448,7 +7473,7 @@ var TRANSLATIONS = {
     optional:'opțional',
     wizard_choose_cat:'Alege categorie',days_taken:'zile luate',
     next_reminder_in:'Următor reminder în',minutes:'minute',verse_title:'Versetul zilei',demo_data:'Încarcă date demo',find_dupes_btn:'Caută intrări duplicate',find_baddates_btn:'Caută date incorecte',find_dupe_contacts_btn:'Caută contacte duplicate',find_issues_lbl:'Caută și repară',find_dupes_btn_short:'Intrări',find_baddates_btn_short:'Date',find_dupe_contacts_btn_short:'Contacte',
-    export_csv:'Exportă totul ca CSV',clear_data:'Șterge toate datele',about_card:'Despre aplicație',dev_by:'Dezvoltat de',support_by:'Suport',
+    export_csv:'Exportă totul ca CSV',clear_data:'Șterge toate datele',about_card:'Despre aplicație',updates_btn:'Ce s-a actualizat?',updates_title:'Actualizări',updates_empty:'Nicio actualizare încă.',dev_by:'Dezvoltat de',support_by:'Suport',
     print_btn:'Tipărește / PDF',export_csv2:'Exportă CSV',print_pdf:'Tipărește / PDF',export_csv_btn:'Exportă CSV',
     signout_google:'Deconectare Google',sync_now_btn:'Sincronizează acum',sync_now_syncing:'Se sincronizează…',sync_now_done:'Sincronizat',sync_now_hint:'Preia cele mai recente date din Drive și trimite modificările locale. Fă asta dacă alt dispozitiv a adăugat recent ceva.',force_update_btn:'Forțează actualizarea',force_update_hint:'Șterge datele temporare ale aplicației și reîncarcă cea mai recentă versiune. Datele tale rămân în siguranță deoarece sunt stocate separat. Fă asta dacă o remediere recentă nu pare să apară.',force_update_confirm:'Aceasta șterge datele temporare ale aplicației și reîncarcă cea mai recentă versiune. Datele tale rămân în siguranță. Continui?',backup_download_btn:'Descarcă backup complet',backup_restore_file_btn:'Restaurează din fișier',
     drive_sign_in:'Conectare cu Google',
@@ -7524,7 +7549,7 @@ var TRANSLATIONS = {
     crit_hours:'Kötelező órák',
     hours_abbr:'ó',goals_title:'Személyes célok',goals_empty:'Állítson be célokat a Beállításokban.',goals_set:'Célok beállítása',goals_card:'Személyes célok',goal_studies_explain:'Minden \'Bibliatanulmány tartva\' kategóriájú bejegyzést számol ebben a hónapban.',goal_evang_explain:'Minden Evangelizáció kategóriájú bejegyzést számol ebben a hónapban.',goal_uren_explain:'Összeadja az ebben a hónapban rögzített összes órát, beleértve az utazási időt is.',goal_followup_explain:'Minden egyedi kapcsolatot számol, akit ebben a hónapban meglátogattál, felhívtál, vagy akivel Bibliatanulmányod volt.',
     add_cursist:'+ Kapcsolat hozzáadása',add_lid:'+ Tag hozzáadása',add_cursist_title:'Kapcsolat hozzáadása',add_lid_title:'Tag hozzáadása',
-    save_btn:'Mentés',cancel_btn:'Mégse',delete_btn:'Törlés',edit_btn:'Szerkesztés',save_as_new_btn:'Mentés újként',
+    save_btn:'Mentés',cancel_btn:'Mégse',close_btn:'Bezárás',delete_btn:'Törlés',edit_btn:'Szerkesztés',save_as_new_btn:'Mentés újként',
     contact_edit:'Kapcsolat adatok szerkesztése',name_req:'Név *',address_lbl:'Cím',city_lbl:'Város',tel_lbl:'Telefon',notes_lbl:'Megjegyzések',postcode_lbl:'Irányítószám',country_lbl:'Ország',
     contact_freq_lbl:'Kapcsolattartás gyakorisága',freq_none:'Nincs beállítva',freq_twiceweekly:'Heti 2x',freq_weekly:'Hetente',freq_biweekly:'Kéthetente',freq_triweekly:'Háromhetente',freq_monthly:'Havonta',freq_quarterly:'Negyedévente',freq_semester:'Félévente',extra_zorg_lbl:'Különleges törődés szükséges',extra_zorg_badge:'Törődés',andere_werker_lbl:'Másik munkatárs felelőssége',andere_werker_hint:'Nem jelenik meg lemaradva a nyomon követésben, de a rögzített látogatások továbbra is számítanak.',geloof_lbl:'Hitbeli meggyőződés',geloof_ongelovig:'Hitetlen',geloof_katholiek:'Katolikus',geloof_protestant:'Protestáns',geloof_moslim:'Muszlim',geloof_adventist:'Adventista',geloof_andere:'Egyéb',niveau_lbl:'Szint',niveau_basis:'Alap',niveau_medium:'Közepes',niveau_gevorderd:'Haladó',niveau_adventist:'Adventista',niveau_gemengd:'Vegyes',highlights_lbl:'Történet kiemelt pontjai',import_phone_contact_btn:'Importálás telefonos névjegyekből',import_phone_contact_unsupported:'A névjegyek importálása csak Chrome-ban, Androidon támogatott.',
     no_contact_info:'Nincs elérhetőség',lbl_studies:'Tanulmányok',lbl_uren_stat:'Órák',lbl_themas:'Témák',
@@ -7596,7 +7621,7 @@ var TRANSLATIONS = {
     optional:'opcionális',
     wizard_choose_cat:'Kategória választása',days_taken:'nap kivéve',
     next_reminder_in:'Következő emlékeztető',minutes:'perc',verse_title:'Napi ige',demo_data:'Demo adatok betöltése',find_dupes_btn:'Duplikált bejegyzések keresése',find_baddates_btn:'Hibás dátumok keresése',find_dupe_contacts_btn:'Duplikált kapcsolatok keresése',find_issues_lbl:'Keresés és javítás',find_dupes_btn_short:'Bejegyzések',find_baddates_btn_short:'Dátumok',find_dupe_contacts_btn_short:'Kapcsolatok',
-    export_csv:'Összes exportálása CSV-ként',clear_data:'Összes adat törlése',about_card:'Az alkalmazásról',dev_by:'Fejlesztette',support_by:'Támogatás',
+    export_csv:'Összes exportálása CSV-ként',clear_data:'Összes adat törlése',about_card:'Az alkalmazásról',updates_btn:'Mi változott?',updates_title:'Frissítések',updates_empty:'Még nincsenek frissítések.',dev_by:'Fejlesztette',support_by:'Támogatás',
     print_btn:'Nyomtatás / PDF',export_csv2:'CSV exportálása',print_pdf:'Nyomtatás / PDF',export_csv_btn:'CSV exportálása',
     signout_google:'Google kijelentkezés',sync_now_btn:'Szinkronizálás most',sync_now_syncing:'Szinkronizálás…',sync_now_done:'Szinkronizálva',sync_now_hint:'Lekéri a legújabb adatokat a Drive-ból, és visszaküldi a helyi módosításokat. Tedd ezt, ha egy másik eszköz nemrég adott hozzá valamit.',force_update_btn:'Frissítés kényszerítése',force_update_hint:'Törli az alkalmazás ideiglenes adatait, és újratölti a legfrissebb verziót. Az adataid biztonságban maradnak, mert külön vannak tárolva. Tedd ezt, ha egy nemrégi javítás nem jelenik meg.',force_update_confirm:'Ez törli az alkalmazás ideiglenes adatait, és újratölti a legfrissebb verziót. Az adataid biztonságban maradnak. Folytatod?',backup_download_btn:'Teljes biztonsági mentés letöltése',backup_restore_file_btn:'Visszaállítás fájlból',
     drive_sign_in:'Bejelentkezés Google-lel',
@@ -7673,7 +7698,7 @@ var TRANSLATIONS = {
     crit_hours:'Обязательные часы',
     hours_abbr:'ч',goals_title:'Личные цели',goals_empty:'Установите цели в Настройках.',goals_set:'Установить цели',goals_card:'Личные цели',goal_studies_explain:'Учитывает каждую запись с категорией \'Проведено изучение Библии\' в этом месяце.',goal_evang_explain:'Учитывает каждую запись в категории Евангелизация в этом месяце.',goal_uren_explain:'Суммирует все зарегистрированные часы за этот месяц, включая время в пути.',goal_followup_explain:'Учитывает каждый уникальный контакт, которого вы посетили, которому позвонили или с которым провели изучение Библии в этом месяце.',
     add_cursist:'+ Добавить контакт',add_lid:'+ Добавить члена',add_cursist_title:'Добавить контакт',add_lid_title:'Добавить члена',
-    save_btn:'Сохранить',cancel_btn:'Отмена',delete_btn:'Удалить',edit_btn:'Изменить',save_as_new_btn:'Сохранить как новую',
+    save_btn:'Сохранить',cancel_btn:'Отмена',close_btn:'Закрыть',delete_btn:'Удалить',edit_btn:'Изменить',save_as_new_btn:'Сохранить как новую',
     contact_edit:'Изменить данные контакта',name_req:'Имя *',address_lbl:'Адрес',city_lbl:'Город',tel_lbl:'Телефон',notes_lbl:'Примечания',postcode_lbl:'Почтовый индекс',country_lbl:'Страна',
     contact_freq_lbl:'Частота контактов',freq_none:'Не задано',freq_twiceweekly:'2 раза в неделю',freq_weekly:'Еженедельно',freq_biweekly:'Раз в две недели',freq_triweekly:'Раз в три недели',freq_monthly:'Ежемесячно',freq_quarterly:'Ежеквартально',freq_semester:'Раз в полгода',extra_zorg_lbl:'Требует особого внимания',extra_zorg_badge:'Забота',andere_werker_lbl:'Ответственность другого работника',andere_werker_hint:'Не будет отображаться как просроченный для наблюдения, но зарегистрированные визиты всё равно учитываются.',geloof_lbl:'Религиозные убеждения',geloof_ongelovig:'Неверующий',geloof_katholiek:'Католик',geloof_protestant:'Протестант',geloof_moslim:'Мусульманин',geloof_adventist:'Адвентист',geloof_andere:'Другое',niveau_lbl:'Уровень',niveau_basis:'Базовый',niveau_medium:'Средний',niveau_gevorderd:'Продвинутый',niveau_adventist:'Адвентист',niveau_gemengd:'Смешанный',highlights_lbl:'Основные моменты истории',import_phone_contact_btn:'Импортировать из контактов телефона',import_phone_contact_unsupported:'Импорт контактов поддерживается только в Chrome на Android.',
     no_contact_info:'Нет контактных данных',lbl_studies:'Изучения',lbl_uren_stat:'Часы',lbl_themas:'Темы',
@@ -7744,7 +7769,7 @@ var TRANSLATIONS = {
     optional:'необяз.',
     wizard_choose_cat:'Выбрать категорию',days_taken:'дней взято',
     next_reminder_in:'Следующее напоминание через',minutes:'минут',verse_title:'Стих дня',demo_data:'Загрузить демо-данные',find_dupes_btn:'Найти дубликаты записей',find_baddates_btn:'Найти некорректные даты',find_dupe_contacts_btn:'Найти дубликаты контактов',find_issues_lbl:'Поиск и исправление',find_dupes_btn_short:'Записи',find_baddates_btn_short:'Даты',find_dupe_contacts_btn_short:'Контакты',
-    export_csv:'Экспортировать всё в CSV',clear_data:'Удалить все данные',about_card:'О приложении',dev_by:'Разработано',support_by:'Поддержка',
+    export_csv:'Экспортировать всё в CSV',clear_data:'Удалить все данные',about_card:'О приложении',updates_btn:'Что обновилось?',updates_title:'Обновления',updates_empty:'Пока нет обновлений.',dev_by:'Разработано',support_by:'Поддержка',
     print_btn:'Печать / PDF',export_csv2:'Экспорт CSV',print_pdf:'Печать / PDF',export_csv_btn:'Экспорт CSV',
     signout_google:'Выйти из Google',sync_now_btn:'Синхронизировать сейчас',sync_now_syncing:'Синхронизация…',sync_now_done:'Синхронизировано',sync_now_hint:'Загружает последние данные с Drive и отправляет локальные изменения обратно. Сделайте это, если на другом устройстве недавно что-то добавили.',force_update_btn:'Принудительное обновление',force_update_hint:'Очищает временные данные приложения и загружает последнюю версию. Ваши данные остаются в безопасности, так как хранятся отдельно. Сделайте это, если недавнее исправление не появляется.',force_update_confirm:'Это очистит временные данные приложения и загрузит последнюю версию. Ваши данные останутся в безопасности. Продолжить?',backup_download_btn:'Скачать полную резервную копию',backup_restore_file_btn:'Восстановить из файла',
     drive_sign_in:'Войти через Google',
@@ -7802,7 +7827,7 @@ var TRANSLATIONS = {
     crit_hours:'Ore criterio',
     hours_abbr:'h',goals_title:'Obiettivi personali',goals_empty:'Imposta obiettivi nelle Impostazioni.',goals_set:'Imposta obiettivi',goals_card:'Obiettivi personali',goal_studies_explain:'Conta ogni registrazione con categoria \'Studio biblico tenuto\' questo mese.',goal_evang_explain:'Conta ogni registrazione nella categoria Evangelizzazione questo mese.',goal_uren_explain:'Somma tutte le ore registrate questo mese, incluso il tempo di viaggio.',goal_followup_explain:'Conta ogni contatto unico che hai visitato, chiamato o con cui hai avuto uno studio biblico questo mese.',
     add_cursist:'+ Aggiungi contatto',add_lid:'+ Aggiungi membro',add_cursist_title:'Aggiungi contatto',add_lid_title:'Aggiungi membro',
-    save_btn:'Salva',cancel_btn:'Annulla',delete_btn:'Elimina',edit_btn:'Modifica',save_as_new_btn:'Salva come nuovo',
+    save_btn:'Salva',cancel_btn:'Annulla',close_btn:'Chiudi',delete_btn:'Elimina',edit_btn:'Modifica',save_as_new_btn:'Salva come nuovo',
     contact_edit:'Modifica dati contatto',name_req:'Nome *',address_lbl:'Indirizzo',city_lbl:'Città',tel_lbl:'Telefono',notes_lbl:'Note',postcode_lbl:'CAP',country_lbl:'Paese',
     contact_freq_lbl:'Frequenza di contatto',freq_none:'Non impostato',freq_twiceweekly:'2 volte a settimana',freq_weekly:'Settimanale',freq_biweekly:'Ogni due settimane',freq_triweekly:'Ogni tre settimane',freq_monthly:'Mensile',freq_quarterly:'Trimestrale',freq_semester:'Semestrale',extra_zorg_lbl:'Richiede cure speciali',extra_zorg_badge:'Cura',andere_werker_lbl:'Responsabilità di un altro collaboratore',andere_werker_hint:'Non apparirà come in ritardo per il follow-up, ma le visite registrate contano comunque.',geloof_lbl:'Credo religioso',geloof_ongelovig:'Non credente',geloof_katholiek:'Cattolico',geloof_protestant:'Protestante',geloof_moslim:'Musulmano',geloof_adventist:'Avventista',geloof_andere:'Altro',niveau_lbl:'Livello',niveau_basis:'Base',niveau_medium:'Medio',niveau_gevorderd:'Avanzato',niveau_adventist:'Avventista',niveau_gemengd:'Misto',highlights_lbl:'Punti salienti della storia',import_phone_contact_btn:'Importa dai contatti del telefono',import_phone_contact_unsupported:'L\'importazione dei contatti è supportata solo su Chrome per Android.',
     no_contact_info:'Nessun dato di contatto',lbl_studies:'Studi',lbl_uren_stat:'Ore',lbl_themas:'Temi',
@@ -7875,7 +7900,7 @@ var TRANSLATIONS = {
     optional:'opzionale',
     wizard_choose_cat:'Scegli categoria',days_taken:'giorni presi',
     next_reminder_in:'Prossimo promemoria tra',minutes:'minuti',verse_title:'Versetto del giorno',demo_data:'Carica dati demo',find_dupes_btn:'Cerca voci duplicate',find_baddates_btn:'Cerca date errate',find_dupe_contacts_btn:'Cerca contatti duplicati',find_issues_lbl:'Cerca e correggi',find_dupes_btn_short:'Voci',find_baddates_btn_short:'Date',find_dupe_contacts_btn_short:'Contatti',
-    export_csv:'Esporta tutto in CSV',clear_data:'Cancella tutti i dati',about_card:'Info app',dev_by:'Sviluppato da',support_by:'Supporto',
+    export_csv:'Esporta tutto in CSV',clear_data:'Cancella tutti i dati',about_card:'Info app',updates_btn:'Cosa è stato aggiornato?',updates_title:'Aggiornamenti',updates_empty:'Nessun aggiornamento ancora.',dev_by:'Sviluppato da',support_by:'Supporto',
     print_btn:'Stampa / PDF',export_csv2:'Esporta CSV',print_pdf:'Stampa / PDF',export_csv_btn:'Esporta CSV',
     signout_google:'Disconnetti Google',sync_now_btn:'Sincronizza ora',sync_now_syncing:'Sincronizzazione…',sync_now_done:'Sincronizzato',sync_now_hint:'Recupera i dati più recenti da Drive e invia le modifiche locali. Fallo se un altro dispositivo ha aggiunto qualcosa di recente.',force_update_btn:'Forza aggiornamento',force_update_hint:'Cancella i dati temporanei dell\'app e ricarica la versione più recente. I tuoi dati restano al sicuro perché sono salvati separatamente. Fallo se una correzione recente non sembra apparire.',force_update_confirm:'Questo cancella i dati temporanei dell\'app e ricarica la versione più recente. I tuoi dati restano al sicuro. Continuare?',backup_download_btn:'Scarica backup completo',backup_restore_file_btn:'Ripristina da file',
     drive_sign_in:'Accedi con Google',
@@ -7942,7 +7967,7 @@ var TRANSLATIONS = {
     crit_hours:'Horas de critério',
     hours_abbr:'h',goals_title:'Metas pessoais',goals_empty:'Defina metas nas Configurações.',goals_set:'Definir metas',goals_card:'Metas pessoais',goal_studies_explain:'Conta cada registro com a categoria \'Estudo bíblico dado\' este mês.',goal_evang_explain:'Conta cada registro dentro da categoria Evangelismo este mês.',goal_uren_explain:'Soma todas as horas registradas este mês, incluindo o tempo de viagem.',goal_followup_explain:'Conta cada contato único que você visitou, ligou ou com quem teve um estudo bíblico este mês.',
     add_cursist:'+ Adicionar contato',add_lid:'+ Adicionar membro',add_cursist_title:'Adicionar contato',add_lid_title:'Adicionar membro',
-    save_btn:'Salvar',cancel_btn:'Cancelar',delete_btn:'Excluir',edit_btn:'Editar',save_as_new_btn:'Salvar como novo',
+    save_btn:'Salvar',cancel_btn:'Cancelar',close_btn:'Fechar',delete_btn:'Excluir',edit_btn:'Editar',save_as_new_btn:'Salvar como novo',
     contact_edit:'Editar dados do contato',name_req:'Nome *',address_lbl:'Endereço',city_lbl:'Cidade',tel_lbl:'Telefone',notes_lbl:'Observações',postcode_lbl:'Código postal',country_lbl:'País',
     contact_freq_lbl:'Frequência de contato',freq_none:'Não definido',freq_twiceweekly:'2x por semana',freq_weekly:'Semanal',freq_biweekly:'A cada duas semanas',freq_triweekly:'A cada três semanas',freq_monthly:'Mensal',freq_quarterly:'Trimestral',freq_semester:'Semestral',extra_zorg_lbl:'Precisa de cuidado extra',extra_zorg_badge:'Cuidado',andere_werker_lbl:'Responsabilidade de outro colaborador',andere_werker_hint:'Não aparecerá como atrasado para acompanhamento, mas as visitas registradas continuam contando.',geloof_lbl:'Crença religiosa',geloof_ongelovig:'Não crente',geloof_katholiek:'Católico',geloof_protestant:'Protestante',geloof_moslim:'Muçulmano',geloof_adventist:'Adventista',geloof_andere:'Outro',niveau_lbl:'Nível',niveau_basis:'Básico',niveau_medium:'Médio',niveau_gevorderd:'Avançado',niveau_adventist:'Adventista',niveau_gemengd:'Misto',highlights_lbl:'Destaques do histórico',import_phone_contact_btn:'Importar dos contatos do telefone',import_phone_contact_unsupported:'A importação de contatos só é compatível com o Chrome no Android.',
     no_contact_info:'Sem dados de contato',lbl_studies:'Estudos',lbl_uren_stat:'Horas',lbl_themas:'Temas',
@@ -8006,7 +8031,7 @@ var TRANSLATIONS = {
     welcome_demo_confirm:'Carregar dados demo? Isso substitui os dados atuais.',
     wizard_time:'Hora',days_taken:'dias tirados',
     next_reminder_in:'Próximo lembrete em',minutes:'minutos',verse_title:'Versículo do dia',demo_data:'Carregar dados demo',find_dupes_btn:'Buscar registros duplicados',find_baddates_btn:'Buscar datas incorretas',find_dupe_contacts_btn:'Buscar contatos duplicados',find_issues_lbl:'Buscar e corrigir',find_dupes_btn_short:'Registros',find_baddates_btn_short:'Datas',find_dupe_contacts_btn_short:'Contatos',
-    export_csv:'Exportar tudo em CSV',clear_data:'Apagar todos os dados',about_card:'Sobre o app',dev_by:'Desenvolvido por',support_by:'Suporte',
+    export_csv:'Exportar tudo em CSV',clear_data:'Apagar todos os dados',about_card:'Sobre o app',updates_btn:'O que foi atualizado?',updates_title:'Atualizações',updates_empty:'Ainda sem atualizações.',dev_by:'Desenvolvido por',support_by:'Suporte',
     print_btn:'Imprimir / PDF',export_csv2:'Exportar CSV',print_pdf:'Imprimir / PDF',export_csv_btn:'Exportar CSV',
     signout_google:'Sair do Google',sync_now_btn:'Sincronizar agora',sync_now_syncing:'Sincronizando…',sync_now_done:'Sincronizado',sync_now_hint:'Busca os dados mais recentes do Drive e envia as alterações locais. Faça isso se outro dispositivo adicionou algo recentemente.',force_update_btn:'Forçar atualização',force_update_hint:'Limpa os dados temporários do app e recarrega a versão mais recente. Seus dados permanecem seguros porque são armazenados separadamente. Faça isso se uma correção recente não aparecer.',force_update_confirm:'Isso limpa os dados temporários do app e recarrega a versão mais recente. Seus dados permanecem seguros. Continuar?',backup_download_btn:'Baixar backup completo',backup_restore_file_btn:'Restaurar do arquivo',
     drive_sign_in:'Entrar com Google',
@@ -21471,7 +21496,7 @@ function openDuplicatesModal(){
   // scroll container (used everywhere else in this app, always with
   // -webkit-overflow-scrolling:touch) plus a familiar, explicit close
   // button - directly fixes "can't cancel/scroll" reports.
-  var closeLbl=t('cancel_btn')||'Sluiten';
+  var closeLbl=t('close_btn')||'Sluiten';
   var titleLbl=tMap({nl:'Dubbele registraties',en:'Duplicate entries',es:'Registros duplicados',fr:'Entr\u00e9es en double',de:'Doppelte Eintr\u00e4ge',ro:'Intr\u0103ri duplicate',hu:'Duplik\u00e1lt bejegyz\u00e9sek',ru:'\u0414\u0443\u0431\u043b\u0438\u043a\u0430\u0442\u044b',it:'Voci duplicate',pt:'Registros duplicados'});
   if(!groups.length&&!possible.length){
     var h0='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:15px">'+titleLbl+'</b></div>';
@@ -21758,7 +21783,7 @@ var _mergeContactGroups=[];
 function openMergeContactsModal(){
   var groups=findDuplicateContactGroups();
   _mergeContactGroups=groups;
-  var closeLbl=t('cancel_btn')||'Sluiten';
+  var closeLbl=t('close_btn')||'Sluiten';
   var titleLbl=tMap({nl:'Dubbele contacten',en:'Duplicate contacts',es:'Contactos duplicados',fr:'Contacts en double',de:'Doppelte Kontakte',ro:'Contacte duplicate',hu:'Duplik\u00e1lt kapcsolatok',ru:'\u0414\u0443\u0431\u043b\u0438\u043a\u0430\u0442\u044b \u043a\u043e\u043d\u0442\u0430\u043a\u0442\u043e\u0432',it:'Contatti duplicati',pt:'Contatos duplicados'});
   // Manual entry point: automatic detection only matches on exact name or
   // phone number, so a genuine duplicate typed with a nickname, a typo, or
@@ -24181,6 +24206,48 @@ function closeModals(){
   if(el)el.remove();
 }
 
+// Settings > "Wat is er bijgewerkt?" - shows the CHANGELOG array (defined
+// near APP_VERSION) as an accordion, one row per release: date + "Update N"
+// in the header, tap to reveal what changed. Most recent release starts
+// open. Short, centered popup (not a bottom sheet) since it's pure reading,
+// same reasoning as openRapportEntrySummary below. Deliberately a small
+// self-contained toggle (toggleChangelogRow) rather than the app-wide
+// acc-open/setAccState system - this list has no need to remember which
+// rows were open between visits.
+function openChangelog(){
+  var h='<div style="font-size:15px;font-weight:700;margin-bottom:14px">'+t('updates_title')+'</div>';
+  if(!CHANGELOG.length){
+    h+='<div style="font-size:13px;color:var(--text3);margin-bottom:14px">'+t('updates_empty')+'</div>';
+  }else{
+    var updateLbl=tMap({nl:'Update',en:'Update',es:'Actualización',fr:'Mise à jour',de:'Update',ro:'Actualizare',hu:'Frissítés',ru:'Обновление',it:'Aggiornamento',pt:'Atualização'});
+    CHANGELOG.forEach(function(rel,i){
+      var num=CHANGELOG.length-i;
+      var open=i===0;
+      h+='<div style="border-bottom:1px solid var(--border)">';
+      h+='<button type="button" onclick="toggleChangelogRow(this)" style="all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0">';
+      h+='<span><span style="font-size:13px;font-weight:700">'+updateLbl+' '+num+'</span><span style="font-size:11px;color:var(--text3);margin-left:8px">'+formatDate(rel.date)+'</span></span>';
+      h+='<span class="acc-chevron" style="display:inline-block;transition:transform .2s;color:var(--text3);font-size:13px'+(open?';transform:rotate(180deg)':'')+'">⌄</span>';
+      h+='</button>';
+      h+='<div style="display:'+(open?'block':'none')+';padding:0 0 14px 0">';
+      h+='<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px">';
+      rel.items.forEach(function(it){
+        h+='<li style="font-size:13px;color:var(--text2);line-height:1.5">'+escapeHtml(tMap(it))+'</li>';
+      });
+      h+='</ul></div></div>';
+    });
+  }
+  h+='<button class="btn primary full" style="margin-top:14px" onclick="closeModals()">'+t('close_btn')+'</button>';
+  showModalCentered(h);
+}
+function toggleChangelogRow(btn){
+  var body=btn.nextElementSibling;
+  if(!body)return;
+  var open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  var chev=btn.querySelector('.acc-chevron');
+  if(chev)chev.style.transform=open?'':'rotate(180deg)';
+}
+
 // Read-only "what is this" popup for a single entry, opened by tapping a row
 // in the Rapport screen's Bijbelstudies/Dagoverzicht cards. Deliberately NOT
 // an edit form (that's what openEditEntryModal is for) - per user feedback,
@@ -24199,7 +24266,7 @@ function openRapportEntrySummary(entryId){
   var toContactLbl=tMap({nl:'Naar contact',en:'To contact',es:'Al contacto',fr:'Vers le contact',de:'Zum Kontakt',ro:'La contact',hu:'A kapcsolathoz',ru:'К контакту',it:'Al contatto',pt:'Para o contato'});
   var toLogLbl=tMap({nl:'Open in logboek',en:'Open in logbook',es:'Abrir en registro',fr:'Ouvrir dans le journal',de:'Im Logbuch öffnen',ro:'Deschide în jurnal',hu:'Megnyitás a naplóban',ru:'Открыть в журнале',it:'Apri nel registro',pt:'Abrir no registro'});
   var histLbl=tMap({nl:'Recente geschiedenis',en:'Recent history',es:'Historial reciente',fr:'Historique récent',de:'Letzter Verlauf',ro:'Istoric recent',hu:'Legutóbbi előzmények',ru:'Недавняя история',it:'Cronologia recente',pt:'Histórico recente'});
-  var closeLbl=t('cancel_btn')||'Sluiten';
+  var closeLbl=t('close_btn')||'Sluiten';
   var h='<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>';
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">';
   if(naam)h+='<div class="bs-avatar" style="flex-shrink:0">'+naam.charAt(0).toUpperCase()+'</div>';
@@ -24241,7 +24308,7 @@ function openRapportEntrySummary(entryId){
   h+='<button class="btn sm" style="flex:1 1 auto" onclick="closeModals();jumpToLogboek(\''+e.datum+'\','+ssIdArg(e.id)+')">'+toLogLbl+'</button>';
   h+='<button class="btn sm primary" style="flex:1 1 auto" onclick="closeModals()">'+closeLbl+'</button>';
   h+='</div>';
-  showModal(h);
+  showModalCentered(h);
 }
 
 // Quick "add a block of days" modal opened from Rapport's Vakantie & Verlof
@@ -29575,7 +29642,7 @@ function openEditEntryModal(entryId){
   sumH+='<div style="font-size:15px;font-weight:700;margin-bottom:14px">'+escapeHtml(e.omschrijving||getCatLabel(e.categorie))+'</div>';
   sumH+='<div style="margin-bottom:14px">'+eeSumRows+'</div>';
   sumH+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
-  sumH+='<button class="btn" onclick="closeModals()" style="flex:1">'+t('cancel_btn')+'</button>';
+  sumH+='<button class="btn" onclick="closeModals()" style="flex:1">'+t('close_btn')+'</button>';
   sumH+='<button class="btn primary" onclick="document.getElementById(\'ee-summary\').style.display=\'none\';document.getElementById(\'ee-full-form\').style.display=\'block\'" style="flex:1">'+eeMoreLbl+'</button>';
   sumH+='</div></div>';
 
@@ -29654,7 +29721,7 @@ function openEditEntryModal(entryId){
     +t('save_as_new_btn')+'</button>';
   h+='</div>'; // close ee-full-form
   h+='</div>';
-  showModal(h);
+  showModalCentered(h);
 }
 
 function duplicateEditEntry(entryId){
