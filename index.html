@@ -18357,10 +18357,9 @@ function _buildRapportInner(){
   // Jan 1 through the end of the selected month — e.g. 3 days taken in
   // February reads 21/24 for Feb through June, then 5 more taken in July
   // drops it to 16/24 from July onward. Before anything has been taken
-  // (e.g. January), the tile is omitted rather than showing the full
-  // allotment redundantly.
+  // (e.g. January), it still shows the full allotment (24/24), not blank.
   const _vakTileStats=getVakantieStats(rapportYear);
-  var _vakMonthStats=null;
+  var _vakMonthStats={vakDays:_vakTileStats.vakDays,vakUsedDays:0,vakRemDays:_vakTileStats.vakDays};
   if(rapportViewMode==='month'&&rapportMonth){
     var _vakUpToUren=filterByYear(db.entries,rapportYear).filter(function(e){return e.categorie==='Vakantie'&&(e.datum||'').slice(0,7)<=rapportMonth;}).reduce(function(t,e){return t+(parseFloat(e.uren)||0);},0);
     var _vakUpToDays=Math.round(_vakUpToUren/8);
@@ -18675,10 +18674,7 @@ function _buildRapportInner(){
       <div><div class="rp-glance-num">${Math.round(totalKm)}${distUnit()}</div><div class="rp-glance-label">${t('km_label')}</div></div>
       <div><div class="rp-glance-num">${currencySymbol()}${kmVergoeding}</div><div class="rp-glance-label">${t('vergoeding')}</div></div>
       ${rapportViewMode==='month'
-        ? (_vakMonthStats&&_vakMonthStats.vakUsedDays>0
-            ? `<div style="cursor:pointer" onclick="toggleVakantieDetail(this,'${rapportYear}','vak-detail-rp-top','vak-chev-rp-top',null,'${rapportMonth}')"><div class="rp-glance-num">${_vakMonthStats.vakRemDays}/${_vakMonthStats.vakDays}</div><div class="rp-glance-label">${t('vacation_remaining')}</div></div>`
-            : ''
-          )
+        ? `<div style="cursor:pointer" onclick="toggleVakantieDetail(this,'${rapportYear}','vak-detail-rp-top','vak-chev-rp-top',null,'${rapportMonth}')"><div class="rp-glance-num">${_vakMonthStats.vakRemDays}/${_vakMonthStats.vakDays}</div><div class="rp-glance-label">${t('vacation_remaining')}</div></div>`
         : `<div style="cursor:pointer" onclick="toggleVakantieDetail(this,'${rapportYear}','vak-detail-rp-top','vak-chev-rp-top')"><div class="rp-glance-num">${_vakTileStats.vakRemDays}/${_vakTileStats.vakDays}</div><div class="rp-glance-label">${t('vacation_remaining')}</div></div>`
       }
     </div>
