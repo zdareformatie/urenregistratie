@@ -18391,16 +18391,16 @@ function _buildRapportInner(){
   // order can differ per language; {studied}/{total}/{period} are swapped
   // in at render time.
   const _funnelExplainTpl=tMap({
-    nl:'{studied} van de {total} {type} kregen in {period} minstens één bijbelstudie. Bij een groepsstudie telt elke aanwezige student mee, ook als het dezelfde studie was.',
-    en:'{studied} of the {total} {type} received at least one Bible study in {period}. In a group study, every attendee counts, even if it was the same study.',
-    es:'{studied} de los {total} {type} recibieron al menos un estudio bíblico en {period}. En un estudio grupal, cada asistente cuenta, aunque fuera el mismo estudio.',
-    fr:'{studied} des {total} {type} ont reçu au moins une étude biblique en {period}. Lors d\'une étude de groupe, chaque participant compte, même s\'il s\'agissait de la même étude.',
-    de:'{studied} von {total} {type} haben in {period} mindestens ein Bibelstudium erhalten. Bei einem Gruppenstudium zählt jeder Teilnehmer, auch wenn es dasselbe Studium war.',
-    ro:'{studied} din cei {total} {type} au primit cel puțin un studiu biblic în {period}. La un studiu de grup, fiecare participant contează, chiar dacă a fost același studiu.',
-    hu:'{total} {type} közül {studied} kapott legalább egy bibliatanulmányt {period} időszakban. Csoportos tanulmánynál minden jelenlévő számít, még ha ugyanaz a tanulmány is volt.',
-    ru:'{studied} из {total} {type} получили хотя бы одно библейское изучение в {period}. При групповом изучении учитывается каждый присутствующий, даже если это было одно и то же изучение.',
-    it:'{studied} dei {total} {type} hanno ricevuto almeno uno studio biblico in {period}. In uno studio di gruppo, ogni partecipante conta, anche se era lo stesso studio.',
-    pt:'{studied} dos {total} {type} receberam pelo menos um estudo bíblico em {period}. Num estudo em grupo, cada participante conta, mesmo que tenha sido o mesmo estudo.'
+    nl:'{studied} van de {total} {type} kregen in {period} minstens één bijbelstudie.',
+    en:'{studied} of the {total} {type} received at least one Bible study in {period}.',
+    es:'{studied} de los {total} {type} recibieron al menos un estudio bíblico en {period}.',
+    fr:'{studied} des {total} {type} ont reçu au moins une étude biblique en {period}.',
+    de:'{studied} von {total} {type} haben in {period} mindestens ein Bibelstudium erhalten.',
+    ro:'{studied} din cei {total} {type} au primit cel puțin un studiu biblic în {period}.',
+    hu:'{total} {type} közül {studied} kapott legalább egy bibliatanulmányt {period} időszakban.',
+    ru:'{studied} из {total} {type} получили хотя бы одно библейское изучение в {period}.',
+    it:'{studied} dei {total} {type} hanno ricevuto almeno uno studio biblico in {period}.',
+    pt:'{studied} dos {total} {type} receberam pelo menos um estudo bíblico em {period}.'
   });
   const _funnelNoneTpl=tMap({
     nl:'Niemand van de {total} {type} kreeg in {period} een bijbelstudie.',
@@ -18644,8 +18644,8 @@ function _buildRapportInner(){
       }
     </div>
     ${s.workRole!=='kantoor'?`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px 4px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-      <div style="cursor:pointer" onclick="toggleDetailBox('funnel-detail-interested')"><div class="rp-glance-num">${_topFunnelStudied.interested}/${_topFunnel.interested}</div><div class="rp-glance-label">${t('ct_interested_pl')||t('ct_interested')}</div></div>
-      <div style="cursor:pointer" onclick="toggleDetailBox('funnel-detail-student')"><div class="rp-glance-num">${_topFunnelStudied.student}/${_topFunnel.student}</div><div class="rp-glance-label">${t('ct_student_pl')||t('ct_student')}</div></div>
+      <div style="cursor:pointer" onclick="toggleDetailBox('funnel-detail-interested',['funnel-detail-interested','funnel-detail-student'])"><div class="rp-glance-num">${_topFunnelStudied.interested}/${_topFunnel.interested}</div><div class="rp-glance-label">${t('ct_interested_pl')||t('ct_interested')}</div></div>
+      <div style="cursor:pointer" onclick="toggleDetailBox('funnel-detail-student',['funnel-detail-interested','funnel-detail-student'])"><div class="rp-glance-num">${_topFunnelStudied.student}/${_topFunnel.student}</div><div class="rp-glance-label">${t('ct_student_pl')||t('ct_student')}</div></div>
       <div><div class="rp-glance-num">${studyEntries.length}</div><div class="rp-glance-label">${t('bijbelstudies')}</div></div>
       <div><div class="rp-glance-num">${_topFunnel.doop}</div><div class="rp-glance-label">${t('ct_doop')}</div></div>
     </div>
@@ -19996,11 +19996,20 @@ function saveCursistEdit(id){
 // baked into the HTML at render time, unlike toggleVakantieDetail which
 // builds its content lazily on first tap) — used by the Rapport glance
 // tiles (e.g. Bijbelstudenten/Geïnteresseerden "studied this period"
-// explanation).
-function toggleDetailBox(id){
+// explanation). groupIds, when passed, are sibling detail-box ids that get
+// closed whenever this one opens, so only one stays open at a time.
+function toggleDetailBox(id,groupIds){
   var box=document.getElementById(id);
   if(!box)return;
-  box.style.display=box.style.display==='none'?'block':'none';
+  var willOpen=box.style.display==='none';
+  if(willOpen&&groupIds){
+    groupIds.forEach(function(gid){
+      if(gid===id)return;
+      var other=document.getElementById(gid);
+      if(other)other.style.display='none';
+    });
+  }
+  box.style.display=willOpen?'block':'none';
 }
 
 function toggleVakantieDetail(row,year,detailId,chevId,categorie,month){
