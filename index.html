@@ -1756,8 +1756,6 @@ input[type="radio"]:checked::after{content:'';position:absolute;inset:3px;border
         <div id="baddates-result" style="margin-top:8px"></div>
         <button class="btn full" onclick="confirmClear()" style="margin-top:14px;background:transparent;color:var(--red);border-color:var(--border2)" data-i18n="clear_data">Alle gegevens wissen</button>
         <button class="btn full" onclick="loadDemoData()" style="margin-top:8px;background:transparent;color:var(--text2);border-color:var(--border2);font-weight:500" data-i18n="demo_data">Laad Demo Gegevens</button>
-        <button class="btn full" onclick="forceAppUpdate()" style="margin-top:8px;background:transparent;color:var(--text2);border-color:var(--border2);font-weight:500" data-i18n="force_update_btn">App bijwerken</button>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.4" data-i18n="force_update_hint">Wist tijdelijke appgegevens en laadt de nieuwste versie opnieuw. Je gegevens blijven veilig, want die staan apart opgeslagen. Doe dit als een update niet lijkt door te komen.</div>
         <div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
           <button class="btn sm full" onclick="exportFullBackupFile()" style="background:var(--brand);color:#fff;border-color:var(--brand)" data-i18n="backup_download_btn">Download volledige back-up</button>
           <input type="file" id="restore-file-input" style="display:none" accept=".json" onchange="restoreBackupFromFile(event)">
@@ -1773,7 +1771,11 @@ input[type="radio"]:checked::after{content:'';position:absolute;inset:3px;border
       <div style="font-size:11px;color:var(--text3);margin-bottom:4px;line-height:1.5" id="about-org-full">International Missionary Society Seventh Day Adventist Church Reform Movement</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:2px" data-i18n="about_app_subtitle">Hour Registration App</div>
       <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:14px" id="about-version">v1.0.0 · 2026</div>
-      <button class="btn sm full" onclick="openChangelog()" style="margin-bottom:14px" data-i18n="updates_btn">Wat is er bijgewerkt?</button>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:6px">
+        <button class="btn sm" id="about-updates-btn" onclick="openChangelog()" style="width:auto;padding:8px 14px;font-weight:500">Update 1</button>
+        <button class="btn sm" onclick="forceAppUpdate()" style="width:auto;padding:8px 14px;background:transparent;color:var(--text2);border-color:var(--border2);font-weight:500" data-i18n="force_update_btn">App bijwerken</button>
+      </div>
+      <div style="font-size:10.5px;color:var(--text3);line-height:1.4;margin-bottom:14px" data-i18n="force_update_hint">Wist tijdelijke appgegevens en laadt de nieuwste versie opnieuw. Je gegevens blijven veilig, want die staan apart opgeslagen. Doe dit als een update niet lijkt door te komen.</div>
       <div style="font-size:11px;color:var(--text3);border-top:1px solid var(--border2);padding-top:12px;line-height:2">
         <span style="color:var(--text2);font-weight:500" data-i18n="dev_by">Ontwikkeld door:</span> Gabriel Porras<br>
         <span style="color:var(--text2);font-weight:500" data-i18n="tech_by">Technologie:</span> Claude AI (Anthropic)<br>
@@ -5883,6 +5885,12 @@ const DRIVE_FILE_NAME='ZDA_Urenregistratie_'+new Date().getFullYear()+'.json';
 // it), not commit messages.
 const CHANGELOG=[
   {date:'2026-09-01',items:[
+    {nl:'De knop "Wat is er bijgewerkt?" heet nu "Update #" en toont het laatste updatenummer; ernaast staat nu ook de knop "App bijwerken".',en:'The "What has been updated?" button is now called "Update #" and shows the latest update number; the "Update app" button now sits right next to it.'},
+    {nl:'Bij "Activiteit herhalen" staat nu een aanvinkvakje "Huidige tijd gebruiken": aangevinkt vult het automatisch de huidige tijd in (afgerond op het kwartier), uitgevinkt wordt er geen tijd ingevuld.',en:'"Repeat activity" now has a "Use current time" checkbox: checked auto-fills the current time (rounded to the quarter hour), unchecked leaves the time blank.'},
+    {nl:'Het "Activiteit herhalen" venster staat nu in het midden van het scherm in plaats van onderaan.',en:'The "Repeat activity" popup is now centered on screen instead of anchored to the bottom.'},
+    {nl:'Bugfix: bij het herhalen van een activiteit met een datum in de toekomst werd de ingevulde tijd niet opgeslagen.',en:'Bugfix: when repeating an activity with a future date, the time entered wasn’t actually being saved.'}
+  ]},
+  {date:'2026-09-01',items:[
     {nl:'Een invoer openen in het logboek toont nu eerst een kort overzicht van wat al is ingevuld, met "Meer weergeven" om het volledige formulier te openen.',en:'Opening an entry in the logbook now first shows a short summary of what’s already filled in, with "Show more" to open the full form.'},
     {nl:'De kaart "Reiskosten" heet nu "Reis en andere kosten": km, vergoeding en overige kosten staan duidelijker naast elkaar met het totaal in de kaart.',en:'The "Travel costs" card is now called "Travel and other costs": km, reimbursement and other costs are laid out more clearly with the total shown on the card.'},
     {nl:'Het rapportonderdeel "Bijbelstudies" heet nu "Bijbelstudies en Pastoraal werk" en toont nu ook contacten, bezoeken en pastoraal werk.',en:'The report section "Bible studies" is now called "Bible studies and Pastoral work" and now also includes contacts, visits and pastoral work.'},
@@ -5890,6 +5898,7 @@ const CHANGELOG=[
     {nl:'"Open in logboek" vanuit het rapport opent nu echt de juiste invoer (kort gemarkeerd), in plaats van alleen in de buurt te scrollen.',en:'"Open in logbook" from the report now actually opens the specific entry (briefly highlighted), instead of only scrolling near it.'}
   ]}
 ];
+const UPDATE_LBL_MAP={nl:'Update',en:'Update',es:'Actualización',fr:'Mise à jour',de:'Update',ro:'Actualizare',hu:'Frissítés',ru:'Обновление',it:'Aggiornamento',pt:'Atualização'};
 const UREN_CRIT=2088,VAKANTIE=192;
 function getVakantieUren(){return (db&&db.settings&&db.settings.goalVacationDays)?db.settings.goalVacationDays*8:VAKANTIE;}
 // Official Dutch "onbelaste kilometervergoeding" (tax-free km allowance) per calendar year.
@@ -11835,6 +11844,8 @@ function applySettings(){const s=db.settings;
   if(aver)aver.textContent='v'+APP_VERSION+' · '+APP_YEAR;
   var avern=document.getElementById('about-version-num');
   if(avern)avern.textContent=APP_VERSION;
+  var aupdbtn=document.getElementById('about-updates-btn');
+  if(aupdbtn)aupdbtn.textContent=tMap(UPDATE_LBL_MAP)+' '+CHANGELOG.length;
   applyStoredTheme();
   applyStoredDarkMode();
   applyWorkRoleVisibility();}
@@ -16080,7 +16091,9 @@ function openQuickRepeatModal(last, prefillDate){
   var qrInitDate=prefillDate||ymdLocal();
   h+='<span class="form-label">'+dateLbl+'</span><input type="date" id="qr-datum" value="'+qrInitDate+'" style="margin-bottom:8px">';
   h+='<span class="form-label">'+t('wizard_time')+'</span>';
-  h+=renderTimePicker('qr-time',(last&&last.time?last.time:''));
+  h+=renderTimePicker('qr-time',roundToQuarterHour());
+  var qrAutoTimeLbl=tMap({nl:'Huidige tijd gebruiken',en:'Use current time',es:'Usar la hora actual',fr:'Utiliser l\'heure actuelle',de:'Aktuelle Uhrzeit verwenden',ro:'Folosește ora curentă',hu:'Jelenlegi idő használata',ru:'Использовать текущее время',it:'Usa l\'ora attuale',pt:'Usar hora atual'});
+  h+='<label style="display:flex;align-items:center;gap:6px;margin:4px 0 8px;cursor:pointer;font-size:11.5px;color:var(--text3)"><input type="checkbox" id="qr-time-auto" checked onchange="qrToggleAutoTime(this.checked)" style="width:15px;height:15px;flex-shrink:0">'+qrAutoTimeLbl+'</label>';
   h+='<span class="form-label">Uren</span><select id="qr-uren" class="hour-picker" style="width:100%;display:flex;align-items:center">'+buildHourOptions(last.uren||1)+'</select>';
   h+='</div>';
   h+='<div id="qr-more-toggle" onclick="document.getElementById(\'qr-more\').style.display=\'block\';this.style.display=\'none\'" style="font-size:12px;color:var(--brand);cursor:pointer;margin-bottom:10px">'+moreLbl+' &rsaquo;</div>';
@@ -16122,7 +16135,33 @@ function openQuickRepeatModal(last, prefillDate){
   // always plain numbers, which happened to survive unquoted).
   h+='<button class="btn primary" onclick="saveQuickRepeat('+ssIdArg(last.id)+')" style="flex:1">'+t('save_btn')+'</button>';
   h+='</div></div>';
-  showModal(h);
+  showModalCentered(h);
+}
+// Checked: fills the time picker with the current time (rounded to the
+// nearest quarter hour). Unchecked: clears it, since not every repeated
+// activity should get a time stamped on it. Manually assigning .value on
+// the picker's <select> elements doesn't fire their change event, so
+// _syncTimePicker must be called explicitly afterwards to sync the hidden
+// canonical HH:MM input the save logic actually reads.
+function qrToggleAutoTime(checked){
+  var hEl=document.getElementById('qr-time_h'),mEl=document.getElementById('qr-time_m'),apEl=document.getElementById('qr-time_ap');
+  if(!hEl||!mEl)return;
+  if(checked){
+    var parts=roundToQuarterHour().split(':');
+    var h24=parseInt(parts[0],10),m=parseInt(parts[1],10);
+    if(apEl){
+      apEl.value=h24>=12?'pm':'am';
+      hEl.value=String(h24%12===0?12:h24%12);
+    }else{
+      hEl.value=String(h24);
+    }
+    mEl.value=String(m);
+  }else{
+    hEl.value='';
+    mEl.value='';
+    if(apEl)apEl.value='am';
+  }
+  _syncTimePicker('qr-time');
 }
 function saveQuickRepeat(sourceEntryId){
   // Clones the source entry wholesale (so cursistId/cursistNaam/gemeente/
@@ -16138,7 +16177,6 @@ function saveQuickRepeat(sourceEntryId){
   var thema=document.getElementById('qr-thema');
   var themaCompleted=document.getElementById('qr-thema-completed');
   var uren=document.getElementById('qr-uren');
-  var timeInputs=document.querySelectorAll('#qr-time input, #qr-time select');
   var reisuren=document.getElementById('qr-reisuren');
   var km=document.getElementById('qr-km');
   var opm=document.getElementById('qr-opmerking');
@@ -16147,9 +16185,16 @@ function saveQuickRepeat(sourceEntryId){
   var calCb=document.getElementById('qr-add-to-cal');
   var wantsCal=calCb?calCb.checked:false;
   var origOmschrijving=src.omschrijving||'';
+  // renderTimePicker('qr-time',...) stores the canonical "HH:MM" string in a
+  // hidden input with id="qr-time" (kept in sync by _syncTimePicker on every
+  // hour/minute change, and by the "use current time" checkbox) - read that
+  // directly rather than re-deriving it from the visible hour/minute selects.
+  var timeHiddenEl=document.getElementById('qr-time');
+  var timeVal=timeHiddenEl?timeHiddenEl.value:'';
   var newEntry=Object.assign({},src,{
     id:genEntryId(),
     datum:datum.value,
+    time:timeVal,
     uren:parseFloat(uren&&uren.value)||0,
     opmerking:opm?opm.value:'',
     isManual:true
@@ -16190,18 +16235,12 @@ function saveQuickRepeat(sourceEntryId){
   // date, so picking a future date here just mis-logged it as already done.
   if(datum.value>ymdLocal()){
     ensurePlanned();
-    // Read time from the time picker inputs
-    var timeVal='';
-    if(timeInputs&&timeInputs.length>0){
-      // Construct time from hour and minute inputs
-      var hourInput=Array.from(timeInputs).find(function(el){return el.id==='qr-time-hh'||el.getAttribute('data-part')==='hour';});
-      var minInput=Array.from(timeInputs).find(function(el){return el.id==='qr-time-mm'||el.getAttribute('data-part')==='minute';});
-      if(hourInput&&minInput){
-        var h=String(parseInt(hourInput.value)||0).padStart(2,'0');
-        var m=String(parseInt(minInput.value)||0).padStart(2,'0');
-        timeVal=h+':'+m;
-      }
-    }
+    // renderTimePicker('qr-time',...) stores the canonical "HH:MM" string in
+    // a hidden input with id="qr-time" (kept in sync by _syncTimePicker on
+    // every hour/minute change) - just read that directly rather than
+    // re-deriving it from the visible hour/minute selects.
+    var timeHiddenEl=document.getElementById('qr-time');
+    var timeVal=timeHiddenEl?timeHiddenEl.value:'';
     var plannedEntry={
       id:newEntry.id,
       datum:newEntry.datum,
@@ -22110,6 +22149,16 @@ function renderTimePicker(id,value){
     +'<input type="hidden" id="'+id+'" value="'+escapeHtml(value||'')+'">'
   +'</div>';
 }
+// Used by the "use current time" checkbox in the quick-repeat popup: workers
+// report in quarter-hour terms, not to the minute, so rounding to the
+// nearest :00/:15/:30/:45 matches how they'd actually say the time out loud.
+function roundToQuarterHour(d){
+  d=d||new Date();
+  var h=d.getHours(),m=d.getMinutes();
+  var rm=Math.round(m/15)*15;
+  if(rm===60){rm=0;h=(h+1)%24;}
+  return (h<10?'0'+h:h)+':'+(rm<10?'0'+rm:rm);
+}
 function _syncTimePicker(id){
   var hEl=document.getElementById(id+'_h'),mEl=document.getElementById(id+'_m'),apEl=document.getElementById(id+'_ap'),hidden=document.getElementById(id);
   if(!hEl||!mEl||!hidden)return;
@@ -24219,11 +24268,11 @@ function openChangelog(){
   if(!CHANGELOG.length){
     h+='<div style="font-size:13px;color:var(--text3);margin-bottom:14px">'+t('updates_empty')+'</div>';
   }else{
-    var updateLbl=tMap({nl:'Update',en:'Update',es:'Actualización',fr:'Mise à jour',de:'Update',ro:'Actualizare',hu:'Frissítés',ru:'Обновление',it:'Aggiornamento',pt:'Atualização'});
+    var updateLbl=tMap(UPDATE_LBL_MAP);
     CHANGELOG.forEach(function(rel,i){
       var num=CHANGELOG.length-i;
       var open=i===0;
-      h+='<div style="border-bottom:1px solid var(--border)">';
+      h+='<div>';
       h+='<button type="button" onclick="toggleChangelogRow(this)" style="all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0">';
       h+='<span><span style="font-size:13px;font-weight:700">'+updateLbl+' '+num+'</span><span style="font-size:11px;color:var(--text3);margin-left:8px">'+formatDate(rel.date)+'</span></span>';
       h+='<span class="acc-chevron" style="display:inline-block;transition:transform .2s;color:var(--text3);font-size:13px'+(open?';transform:rotate(180deg)':'')+'">⌄</span>';
