@@ -896,6 +896,10 @@ input[type="radio"]:checked::after{content:'';position:absolute;inset:3px;border
      hairline margin, no border. */
   .rp-page-break{break-after:page}
   .rp-no-break,.rp-day-block{break-inside:avoid;margin-bottom:1pt}
+  /* Hairline between days - a border, not extra margin, so the page
+     doesn't grow taller than before; :first-child skipped so the very
+     top of the timeline doesn't get a stray line under the heading. */
+  .rp-day-block:not(:first-child){border-top:.4pt solid #e5e5e5!important;padding-top:1pt}
   .rp-day-strip{display:none}
   .rp-day-head-inner{
     padding:0;border:none!important;
@@ -925,7 +929,15 @@ input[type="radio"]:checked::after{content:'';position:absolute;inset:3px;border
      .rp-act-group-bar for the little category-color square and
      .rp-sec-timeline-detail so the existing "numbers only" (day-totals-only)
      toggle still hides these rows. */
-  .rp-act-row3{display:grid;grid-template-columns:30pt 62pt 1fr 32pt;align-items:baseline;gap:5pt;padding:.75pt 0;border:none!important;line-height:1.25}
+  /* 6 columns: Datum | Categorie | Omschrijving | Km | Uren | Totaal. Km
+     and Uren sit as their own narrow right-aligned columns (previously km
+     was crammed as a second line stacked under the hours figure) and a
+     dedicated Totaal column sits at the far right, past Uren - the day
+     total (see .rp-day-foot below) lands in that same column on its own
+     row instead of the old free-floating "Totaal: Xu" line indented under
+     the description, which sat in a visually arbitrary spot unrelated to
+     any column above it. */
+  .rp-act-row3{display:grid;grid-template-columns:26pt 55pt 1fr 20pt 24pt 30pt;align-items:baseline;gap:5pt;padding:.75pt 0;border:none!important;line-height:1.25}
   .rp-act-r3-date{font-size:6.5pt;color:#999!important;white-space:nowrap;overflow:hidden}
   .rp-leave-row .rp-act-r3-date{white-space:normal;line-height:1.2}
   .rp-act-r3-cat{display:flex;align-items:baseline;gap:3pt;font-size:6.5pt;color:#777!important;min-width:0}
@@ -933,11 +945,17 @@ input[type="radio"]:checked::after{content:'';position:absolute;inset:3px;border
   .rp-act-r3-cat-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rp-act-r3-desc{font-size:8pt;min-width:0}
   .rp-act-r3-note{font-size:7pt;color:#888!important;font-style:italic}
+  .rp-act-r3-km{font-size:6.5pt;font-weight:400;color:#888!important;text-align:right;white-space:nowrap}
   .rp-act-r3-hrs{font-size:7.5pt;font-weight:700;color:#333!important;text-align:right;white-space:nowrap}
-  .rp-act-r3-km{font-size:6.5pt;font-weight:400;color:#888!important;display:block;text-align:right}
+  .rp-act-r3-total{font-size:7.5pt;font-weight:700;color:#1A6B47!important;text-align:right;white-space:nowrap}
 
-  /* Day footer — small grey, no border, sits right against the last row */
-  .rp-day-foot{display:flex;gap:10pt;padding:0;font-size:6.5pt;color:#888!important;border:none!important;margin:0 0 2pt 30pt}
+  /* Day footer — now a real row in the same 6-column grid (see
+     .rp-act-row3 above) so its total lands in the Totaal column, lined up
+     under every other row's numbers instead of floating under the
+     description text. The hairline above the next day (.rp-day-block
+     border-top) already separates it visually, so this stays borderless
+     and just slightly muted. */
+  .rp-day-foot .rp-act-r3-desc{font-size:6.5pt;color:#888!important;font-style:italic;text-align:right}
 
   /* Grand total — same plain stat-row list as the tiles above (one thin
      top rule to mark it as the final summary, not a heavy boxed-off
@@ -19108,7 +19126,9 @@ ${(function(){
         <div class="rp-act-r3-date">${rangeLbl}</div>
         <div class="rp-act-r3-cat"><div class="rp-act-group-bar" style="background:${leaveColor}"></div><span class="rp-act-r3-cat-txt">${getCatLabel(blk.categorie)}</span></div>
         <div class="rp-act-r3-desc"></div>
+        <div class="rp-act-r3-km"></div>
         <div class="rp-act-r3-hrs">${blk.uren.toFixed(1)}${t('hours_abbr')}</div>
+        <div class="rp-act-r3-total"></div>
       </div></div>`;
       }
       const datum=blk.datum,es=blk.entries;
@@ -19137,16 +19157,22 @@ ${(function(){
               <div class="rp-act-r3-date">${idx===0?dateShort:''}</div>
               <div class="rp-act-r3-cat"><div class="rp-act-group-bar" style="background:${color}"></div><span class="rp-act-r3-cat-txt">${catLabel}</span></div>
               <div class="rp-act-r3-desc"><span class="rp-name-real">${name}</span><span class="rp-name-anon">${nameAnon}</span>${e.opmerking?' <span class="rp-act-r3-note">— '+e.opmerking+'</span>':''}</div>
-              <div class="rp-act-r3-hrs">${displayU}${t('hours_abbr')}${displayKm?`<span class="rp-act-r3-km">${displayKm}${distUnit()}</span>`:''}</div>
+              <div class="rp-act-r3-km">${displayKm?displayKm+distUnit():''}</div>
+              <div class="rp-act-r3-hrs">${displayU}${t('hours_abbr')}</div>
+              <div class="rp-act-r3-total"></div>
             </div>`;
       }).join('');
       return`<div class="rp-day-block">
       <div class="rp-day-body">
         ${rows}
       </div>
-      ${es.length>1?`<div class="rp-day-foot">
-        <span>${t('rp_total_label')}: <strong>${dayT.toFixed(1)}${t('hours_abbr')}</strong></span>
-        ${dayKm>0?'<span>Km: <strong>'+dayKm+'</strong></span>':''}
+      ${es.length>1?`<div class="rp-act-row3 rp-day-foot">
+        <div class="rp-act-r3-date"></div>
+        <div class="rp-act-r3-cat"></div>
+        <div class="rp-act-r3-desc">${t('rp_total_label')}</div>
+        <div class="rp-act-r3-km">${dayKm>0?Math.round(dayKm)+distUnit():''}</div>
+        <div class="rp-act-r3-hrs"></div>
+        <div class="rp-act-r3-total">${dayT.toFixed(1)}${t('hours_abbr')}</div>
       </div>`:''}
     </div>`;
     }).join('');
