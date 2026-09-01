@@ -29549,7 +29549,39 @@ function openEditEntryModal(entryId){
   if(eeMultiGroups.nietLeden.length)eeCheckList+=eeMultiSubtitle(nietLedenSectionLbl())+eeMultiGroups.nietLeden.map(eeMultiRow).join('');
   if(eeMultiGroups.leden.length)eeCheckList+=eeMultiSubtitle(ledenSectionLbl())+eeMultiGroups.leden.map(eeMultiRow).join('');
 
+  // Default view: a read-only, report-style summary of only the fields
+  // that actually have something in them. Opening a logged entry to check
+  // it previously always dropped straight into the full edit form, which
+  // reads as an empty form demanding input even when almost everything was
+  // already filled in. "Meer weergeven" below reveals the exact same full
+  // form (unchanged field IDs, so saveEditEntry/duplicateEditEntry keep
+  // working) for the gray/empty fields that still need completing.
+  var eeSumRows='';
+  var eeSumRow=function(label,val){eeSumRows+='<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text3)">'+label+'</span><span style="font-weight:600;text-align:right">'+val+'</span></div>';};
+  eeSumRow(t('wizard_date'), formatDate(e.datum));
+  if(e.tijd)eeSumRow(t('wizard_time'), formatTimeDisplay(e.tijd));
+  if(parseFloat(e.uren)>0)eeSumRow(t('wizard_hours'), parseFloat(e.uren)+t('hours_abbr'));
+  if(parseFloat(e.km)>0)eeSumRow('Km', Math.round(parseFloat(e.km))+distUnit());
+  if(parseFloat(e.reisUren)>0)eeSumRow(t('wizard_travel_hours'), parseFloat(e.reisUren)+t('hours_abbr'));
+  if(parseFloat(e.kosten)>0)eeSumRow(t('col_kosten'), currencySymbol()+parseFloat(e.kosten).toFixed(2).replace('.',','));
+  eeSumRow(t('wizard_cat'), escapeHtml(getCatLabel(e.categorie)));
+  if(e.omschrijving)eeSumRow(t('wizard_desc'), escapeHtml(e.omschrijving));
+  if(e.cursistNaam)eeSumRow(t('wizard_with_who').replace('?',''), escapeHtml(e.cursistNaam));
+  if(e.gemeente)eeSumRow(t('wizard_gemeente'), escapeHtml(e.gemeente));
+  if(e.thema)eeSumRow(t('wizard_theme'), escapeHtml(getThemaDisplay(e.thema)||e.thema));
+  if(e.opmerking)eeSumRow(t('wizard_note'), escapeHtml(e.opmerking));
+  var eeMoreLbl=LANG==='en'?'Show more':LANG==='es'?'Mostrar más':LANG==='fr'?'Afficher plus':LANG==='de'?'Mehr anzeigen':LANG==='ro'?'Arată mai mult':LANG==='hu'?'Több megjelenítése':LANG==='ru'?'Показать больше':LANG==='it'?'Mostra di più':LANG==='pt'?'Mostrar mais':'Meer weergeven';
+  var sumH='<div id="ee-summary">';
+  sumH+='<div style="font-size:15px;font-weight:700;margin-bottom:14px">'+escapeHtml(e.omschrijving||getCatLabel(e.categorie))+'</div>';
+  sumH+='<div style="margin-bottom:14px">'+eeSumRows+'</div>';
+  sumH+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  sumH+='<button class="btn" onclick="closeModals()" style="flex:1">'+t('cancel_btn')+'</button>';
+  sumH+='<button class="btn primary" onclick="document.getElementById(\'ee-summary\').style.display=\'none\';document.getElementById(\'ee-full-form\').style.display=\'block\'" style="flex:1">'+eeMoreLbl+'</button>';
+  sumH+='</div></div>';
+
   var h='<div style="padding:16px;max-height:85vh;overflow-y:auto">';
+  h+=sumH;
+  h+='<div id="ee-full-form" style="display:none">';
   h+='<div style="font-size:15px;font-weight:700;margin-bottom:14px">'
     +(LANG==='en'?'Edit entry':LANG==='es'?'Editar registro':LANG==='fr'?'Modifier entrée':LANG==='de'?'Eintrag bearbeiten':LANG==='ro'?'Editare intrare':LANG==='hu'?'Bejegyzés szerkesztése':LANG==='ru'?'Редактировать запись':'Invoer bewerken')+'</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
@@ -29620,6 +29652,7 @@ function openEditEntryModal(entryId){
   // it as a repeat without losing the original entry.
   h+='<button class="btn sm" onclick="duplicateEditEntry('+entryIdArg+')" style="width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="14" height="14"><use href="#ico-refresh"/></svg>'
     +t('save_as_new_btn')+'</button>';
+  h+='</div>'; // close ee-full-form
   h+='</div>';
   showModal(h);
 }
