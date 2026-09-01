@@ -5877,6 +5877,9 @@ const DRIVE_FILE_NAME='ZDA_Urenregistratie_'+new Date().getFullYear()+'.json';
 // it), not commit messages.
 const CHANGELOG=[
   {date:'2026-09-01',items:[
+    {nl:'Nieuw: bij elke notitie/opmerking (in de wizard, bij het bewerken van een activiteit, en in het dagoverzicht) staat nu een vinkje "Delen met voorzitter". Een notitie gaat alleen mee in het PDF/JSON-rapport als dat vinkje voor die specifieke notitie is aangezet — standaard staat het uit, dus je persoonlijke aantekeningen blijven privé tenzij je ze zelf deelt. De oude algemene "Persoonlijke notities"-instelling bij het exporteren is hierdoor vervallen.',en:'New: every note/comment (in the wizard, when editing an activity, and in the daily overview) now has a "Share with president" checkbox next to it. A note only goes into the PDF/JSON report if that checkbox was turned on for that specific note — it\'s off by default, so your personal notes stay private unless you choose to share them. The old blanket "Personal notes" export setting has been removed since it\'s no longer needed.',es:'Nuevo: cada nota/comentario (en el asistente, al editar una actividad, y en el resumen diario) ahora tiene una casilla "Compartir con el presidente" junto a él. Una nota solo se incluye en el informe PDF/JSON si esa casilla se activó para esa nota en concreto — está desactivada por defecto, así que tus notas personales permanecen privadas a menos que elijas compartirlas. El antiguo ajuste general de exportación "Notas personales" ha sido eliminado por ya no ser necesario.',fr:'Nouveau : chaque note/commentaire (dans l\'assistant, lors de la modification d\'une activité, et dans l\'aperçu quotidien) a désormais une case « Partager avec le président » à côté. Une note n\'est incluse dans le rapport PDF/JSON que si cette case a été cochée pour cette note précise — elle est désactivée par défaut, donc vos notes personnelles restent privées sauf si vous choisissez de les partager. L\'ancien réglage général d\'export « Notes personnelles » a été supprimé car il n\'est plus nécessaire.',de:'Neu: Bei jeder Notiz/Bemerkung (im Assistenten, beim Bearbeiten einer Aktivität und in der Tagesübersicht) gibt es jetzt ein Kontrollkästchen „Mit dem Vorsitzenden teilen". Eine Notiz gelangt nur dann in den PDF-/JSON-Bericht, wenn dieses Kästchen für diese bestimmte Notiz aktiviert wurde — standardmäßig ist es aus, sodass Ihre persönlichen Notizen privat bleiben, sofern Sie sie nicht selbst teilen. Die alte allgemeine Export-Einstellung „Persönliche Notizen" wurde entfernt, da sie nicht mehr nötig ist.',ro:'Nou: fiecare notiță/comentariu (în asistent, la editarea unei activități și în prezentarea zilnică) are acum o casetă „Distribuie președintelui" alături. O notiță ajunge în raportul PDF/JSON doar dacă acea casetă a fost bifată pentru notița respectivă — este dezactivată implicit, deci notițele tale personale rămân private dacă nu alegi să le distribui. Vechea setare generală de export „Notițe personale" a fost eliminată, nemaifiind necesară.',hu:'Új: minden jegyzet/megjegyzés mellett (a varázslóban, egy tevékenység szerkesztésekor és a napi áttekintésben) mostantól megjelenik egy „Megosztás az elnökkel" jelölőnégyzet. Egy jegyzet csak akkor kerül be a PDF/JSON-jelentésbe, ha ez a jelölőnégyzet be lett kapcsolva az adott jegyzethez — alapértelmezetten ki van kapcsolva, így a személyes jegyzeteid privátak maradnak, hacsak nem döntesz a megosztásuk mellett. A régi, általános „Személyes jegyzetek" exportbeállítás megszűnt, mivel már nincs rá szükség.',ru:'Новое: рядом с каждой заметкой/комментарием (в мастере, при редактировании действия и в ежедневном обзоре) теперь есть флажок «Поделиться с президентом». Заметка попадает в отчёт PDF/JSON, только если этот флажок был установлен именно для этой заметки — по умолчанию он выключен, поэтому ваши личные заметки остаются приватными, если вы сами не решите ими поделиться. Старая общая настройка экспорта «Личные заметки» удалена, так как больше не нужна.',it:'Novità: ogni nota/commento (nella procedura guidata, durante la modifica di un\'attività e nella panoramica giornaliera) ha ora una casella "Condividi con il presidente" accanto. Una nota viene inclusa nel report PDF/JSON solo se quella casella è stata attivata per quella nota specifica — è disattivata per impostazione predefinita, quindi le tue note personali restano private a meno che tu non scelga di condividerle. La vecchia impostazione generale di esportazione "Note personali" è stata rimossa perché non più necessaria.',pt:'Novo: cada nota/comentário (no assistente, ao editar uma atividade, e na visão geral diária) agora tem uma caixa "Partilhar com o presidente" ao lado. Uma nota só vai para o relatório PDF/JSON se essa caixa foi ativada para essa nota específica — está desativada por predefinição, para que as suas notas pessoais permaneçam privadas a menos que escolha partilhá-las. A antiga definição geral de exportação "Notas pessoais" foi removida por já não ser necessária.'}
+  ]},
+  {date:'2026-09-01',items:[
     {nl:'Het "Contactenoverzicht" in het PDF-rapport toont nu ook hoeveel bijbelstudenten daadwerkelijk een bijbelstudie kregen en hoeveel geïnteresseerden aandacht kregen in de gekozen periode. Bij een export voor het hele jaar staat er ook een tabel met deze aantallen per maand.',en:'The "Contacts overview" in the PDF report now also shows how many Bible students actually received a Bible study and how many interested people received attention in the selected period. When exporting a full year, a table breaks these counts down per month.',es:'El "Resumen de contactos" en el informe PDF ahora también muestra cuántos estudiantes bíblicos recibieron realmente un estudio bíblico y cuántos interesados recibieron atención en el período seleccionado. Al exportar un año completo, una tabla desglosa estos números por mes.',fr:'L\'"Aperçu des contacts" dans le rapport PDF affiche désormais aussi combien d\'étudiants bibliques ont réellement reçu une étude biblique et combien de personnes intéressées ont reçu de l\'attention pendant la période sélectionnée. Lors de l\'export d\'une année complète, un tableau détaille ces chiffres par mois.',de:'Die "Kontaktübersicht" im PDF-Bericht zeigt jetzt auch, wie viele Bibelschüler im ausgewählten Zeitraum tatsächlich ein Bibelstudium erhalten haben und wie viele Interessenten Aufmerksamkeit erhielten. Beim Export eines ganzen Jahres schlüsselt eine Tabelle diese Zahlen nach Monat auf.',ro:'"Prezentarea contactelor" din raportul PDF arată acum și câți studenți biblici au primit efectiv un studiu biblic și câte persoane interesate au primit atenție în perioada selectată. La exportul unui an întreg, un tabel detaliază aceste cifre pe luni.',hu:'A PDF-jelentés "Kapcsolatok áttekintése" része mostantól azt is mutatja, hányan kaptak ténylegesen bibliatanulmányt a bibliatanulmányozók közül, és hány érdeklődő kapott figyelmet a kiválasztott időszakban. Egy teljes év exportálásakor egy táblázat havi bontásban is megmutatja ezeket a számokat.',ru:'"Обзор контактов" в PDF-отчёте теперь также показывает, сколько изучающих Библию действительно получили библейское изучение и сколько заинтересованных получили внимание за выбранный период. При экспорте за весь год таблица разбивает эти числа по месяцам.',it:'La "Panoramica contatti" nel report PDF ora mostra anche quanti studenti biblici hanno effettivamente ricevuto uno studio biblico e quanti interessati hanno ricevuto attenzione nel periodo selezionato. Esportando un anno intero, una tabella suddivide questi numeri per mese.',pt:'A "Visão geral de contactos" no relatório PDF agora também mostra quantos estudantes bíblicos realmente receberam um estudo bíblico e quantos interessados receberam atenção no período selecionado. Ao exportar um ano inteiro, uma tabela detalha esses números por mês.'}
   ]},
   {date:'2026-09-01',items:[
@@ -7982,6 +7985,16 @@ function t(key){
 // etc.) that don't warrant a full TRANSLATIONS key. Pass a {nl,en,es,...}
 // map; falls back to nl for any language not included.
 function tMap(map){return (map&&(map[LANG]||map.nl))||'';}
+// Shared "share this note with the president/leader" checkbox, used
+// everywhere an activity's opmerking (personal note) can be typed or edited
+// (main wizard, Logboek edit-entry modal, entry-detail popup). Per-note
+// consent replaces the old app-wide "include personal notes" PDF toggle -
+// a note only appears in the PDF/JSON export if its own checkbox was
+// checked, defaulting unchecked (private) either way.
+function noteShareCheckboxHtml(id,checked){
+  var lbl=tMap({nl:'Delen met voorzitter (in rapport/PDF opnemen)',en:'Share with president (include in report/PDF)',es:'Compartir con el presidente (incluir en el informe/PDF)',fr:'Partager avec le président (inclure dans le rapport/PDF)',de:'Mit dem Vorsitzenden teilen (im Bericht/PDF einschließen)',ro:'Distribuie președintelui (include în raport/PDF)',hu:'Megosztás az elnökkel (belefoglalás a jelentésbe/PDF-be)',ru:'Поделиться с президентом (включить в отчёт/PDF)',it:'Condividi con il presidente (includi nel report/PDF)',pt:'Partilhar com o presidente (incluir no relatório/PDF)'});
+  return '<label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;margin-top:4px;line-height:1.4"><input type="checkbox" id="'+id+'" '+(checked?'checked':'')+' style="width:15px;height:15px;flex-shrink:0;margin-top:1px">'+lbl+'</label>';
+}
 
 function buildReminderText(){
   var wrap=document.getElementById('setting-reminder-text-wrap');
@@ -14555,6 +14568,7 @@ function renderWiz(){
       +gemeenteField
       +'<span class="form-label">'+t('wizard_notes_lbl')+'</span>'
       +'<textarea id="w-opmerking" placeholder="'+t('wizard_notes_ph')+'">'+(draft.opmerking||'')+'</textarea>'
+      +noteShareCheckboxHtml('w-opmerking-share',!!draft.notitieDelen)
       +'<span class="form-label">'+t('wizard_followup_lbl')+'</span>'
       +'<input type="text" id="w-reminder" placeholder="'+t('wizard_followup_ph')+'" value="'+(draft.reminder||'')+'">'
       +'<div class="field-row" style="margin-top:8px">'
@@ -14573,6 +14587,8 @@ function renderWiz(){
       if(showGemeente)wSetGemeente();
       // Read this before wSave() re-renders the DOM out from under this step.
       var calCb=document.getElementById('w-add-to-cal');
+      var noteShareCb=document.getElementById('w-opmerking-share');
+      draft.notitieDelen=noteShareCb?noteShareCb.checked:false;
       wSave(calCb?calCb.checked:false);
     };
     wizAttachSuggest('w-opmerking','opmerking');
@@ -14792,6 +14808,7 @@ function saveDraftAsPlanned(){
     km:parseFloat(draft.km)||0,
     kosten:parseFloat(draft.kosten)||0,
     opmerking:draft.opmerking||'',
+    notitieDelen:!!draft.notitieDelen,
     completed:false,skipped:false,reminded:false
   };
   // Multi-day span (task: "beginning and ending date" for a planned trip) —
@@ -15761,20 +15778,32 @@ function toggleEntryThemaCompletedFromModal(entryId){
 function editEntryDetailNote(el,entryId){
   var entry=db.entries.find(function(x){return x.id===entryId;});
   if(!entry)return;
+  var wrap=document.createElement('div');
   var ta=document.createElement('textarea');
   ta.value=entry.opmerking||'';
   ta.rows=2;
   ta.style.cssText='font-size:13px;font-family:inherit;width:100%;box-sizing:border-box;border:none;border-bottom:2px solid var(--brand);background:transparent;outline:none;color:var(--text);resize:vertical;padding:1px 0';
-  el.replaceWith(ta);
+  wrap.appendChild(ta);
+  wrap.insertAdjacentHTML('beforeend',noteShareCheckboxHtml('sti-opmerking-share-'+entryId,!!entry.notitieDelen));
+  el.replaceWith(wrap);
   ta.focus();
+  var shareCb=wrap.querySelector('#sti-opmerking-share-'+entryId);
   function sv(){
     entry.opmerking=ta.value.trim();
+    entry.notitieDelen=shareCb?shareCb.checked:false;
     touch(entry);
     save();
     refreshBackgroundScreenAfterEntryEdit();
     openEntryDetailModal(entryId);
   }
-  ta.onblur=sv;
+  ta.onblur=function(ev){
+    // Don't save/close if focus is just moving to the share checkbox right below.
+    if(ev.relatedTarget===shareCb)return;
+    sv();
+  };
+  if(shareCb){
+    shareCb.onchange=sv;
+  }
   ta.onkeydown=function(ev){
     if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();sv();}
     if(ev.key==='Escape'){ta.onblur=null;openEntryDetailModal(entryId);}
@@ -19073,7 +19102,7 @@ ${hasBibleStudies?`
           const displayU=isNaN(u)?'?':(u%1===0?u.toString():u.toFixed(1));
           return`<div class="rp-bs-row">
             <div class="rp-bs-date">${formatDateShort(ss.datum)}</div>
-            <div style="flex:1;min-width:0"><div class="rp-bs-theme">${ss.thema||ss.omschrijving||'&mdash;'}</div>${ss.opmerking?`<div class="rp-bs-note rp-sec-bs-notes">${ss.opmerking}</div>`:''}</div>
+            <div style="flex:1;min-width:0"><div class="rp-bs-theme">${ss.thema||ss.omschrijving||'&mdash;'}</div>${(ss.opmerking&&ss.notitieDelen===true)?`<div class="rp-bs-note">${escapeHtml(ss.opmerking)}</div>`:''}</div>
             <div class="rp-bs-hrs">${displayU}${t('hours_abbr')}</div>
           </div>`;
         }).join('')}
@@ -19311,7 +19340,7 @@ ${(function(){
         return`<div class="rp-act-row3 rp-sec-timeline-detail">
               <div class="rp-act-r3-date">${idx===0?dateShort:''}</div>
               <div class="rp-act-r3-cat"><div class="rp-act-group-bar" style="background:${color}"></div><span class="rp-act-r3-cat-txt">${catLabel}</span></div>
-              <div class="rp-act-r3-desc"><span class="rp-name-real">${name}</span><span class="rp-name-anon">${nameAnon}</span>${e.opmerking?' <span class="rp-act-r3-note rp-sec-bs-notes">— '+escapeHtml(e.opmerking)+'</span>':''}</div>
+              <div class="rp-act-r3-desc"><span class="rp-name-real">${name}</span><span class="rp-name-anon">${nameAnon}</span>${(e.opmerking&&e.notitieDelen===true)?' <span class="rp-act-r3-note">— '+escapeHtml(e.opmerking)+'</span>':''}</div>
               <div class="rp-act-r3-km">${displayKm?displayKm+distUnit():''}</div>
               <div class="rp-act-r3-hrs">${displayU}${t('hours_abbr')}</div>
               <div class="rp-act-r3-total"></div>
@@ -21271,7 +21300,11 @@ function filterExportEntry(e,prefs){
   if(prefs.timelineDetail===false){
     delete ee.omschrijving;
     delete ee.opmerking;
-  }else if(prefs.bsNotes===false&&ee.categorie==='Bijbelstudie geven'){
+  }else if(ee.notitieDelen!==true){
+    // Personal notes are private by default and only travel with an export
+    // if the worker explicitly checked "share with president" on that
+    // specific entry - replaces the old blanket "include personal notes"
+    // toggle, which leaked every note regardless of the worker's intent.
     delete ee.opmerking;
   }
   return ee;
@@ -21385,8 +21418,9 @@ function exportForPresident(prefs){
   });
   // entries: gated by 'timeline' (include the raw activity log at all), each
   // entry trimmed by km/kosten/timelineDetail (full description+notes) and,
-  // separately, bsNotes for Bible-study entries specifically. Scoped to
-  // exportYear (see above) - not the full multi-year history.
+  // separately, each entry's own notitieDelen ("share with president") flag
+  // for its personal note. Scoped to exportYear (see above) - not the full
+  // multi-year history.
   var exportEntries=prefs.timeline===false?[]:yearEntries.map(function(e){return filterExportEntry(e,prefs);});
 
   // "Vakantie / verlof / ziekteverzuim / feestdagen" checkbox - used to be
@@ -24030,12 +24064,6 @@ function getPdfExportPrefs(){
       km: obj.km!==undefined?obj.km!==false:legacyTravel,
       kosten: obj.kosten!==undefined?obj.kosten!==false:legacyTravel,
       bs: obj.bs!==false,
-      // Personal notes (typed on Bible-study sessions and on any logged
-      // activity, shown in the Daily overview) are opt-in, off by default -
-      // same privacy-first default as the "Contact delen" notes checkbox.
-      // These are the worker's own private remarks, not meant to go to the
-      // president/leader unless explicitly turned on for this export.
-      bsNotes: obj.bsNotes===true,
       contactPhone: obj.contactPhone===true,
       contactAddress: obj.contactAddress===true,
       timeline: obj.timeline!==false,
@@ -24049,7 +24077,7 @@ function getPdfExportPrefs(){
       yearProgress: obj.yearProgress!==false
     };
   }catch(e){
-    return {cover:true,catdist:false,yearProgress:true,km:true,kosten:true,bs:true,bsNotes:false,contactPhone:false,contactAddress:false,timeline:true,timelineDetail:true,absence:true,anonymize:false,planned:true,prayers:true,doop:true,newstats:true};
+    return {cover:true,catdist:false,yearProgress:true,km:true,kosten:true,bs:true,contactPhone:false,contactAddress:false,timeline:true,timelineDetail:true,absence:true,anonymize:false,planned:true,prayers:true,doop:true,newstats:true};
   }
 }
 function savePdfExportPrefs(p){
@@ -24079,7 +24107,6 @@ function openPdfExportOptions(mode){
   var kmLbl=tMap({nl:'Kilometers (voor penningmeester)',en:'Kilometers (for treasurer)',es:'Kilómetros (para tesorero)',fr:'Kilomètres (pour trésorier)',de:'Kilometer (für Kassierer)',ro:'Kilometri (pentru trezorier)',hu:'Kilométer (pénztárosnak)',ru:'Километры (для казначея)',it:'Chilometri (per il tesoriere)',pt:'Quilómetros (para o tesoureiro)'});
   var kostenLbl=tMap({nl:'Onkosten (bus/vliegtuig/trein/benzine)',en:'Expenses (bus/plane/train/fuel)',es:'Gastos (bus/avión/tren/gasolina)',fr:'Frais (bus/avion/train/essence)',de:'Ausgaben (Bus/Flug/Zug/Benzin)',ro:'Cheltuieli (autobuz/avion/tren/combustibil)',hu:'Költségek (busz/repülő/vonat/üzemanyag)',ru:'Расходы (автобус/самолёт/поезд/топливо)',it:'Spese (bus/aereo/treno/carburante)',pt:'Despesas (ônibus/avião/trem/combustível)'});
   var bsLbl=tMap({nl:'Bijbelstudies overzicht (per cursist)',en:'Bible studies overview (per student)',es:'Resumen de estudios bíblicos (por alumno)',fr:'Aperçu des études bibliques (par élève)',de:'Bibelstudien-Übersicht (pro Schüler)',ro:'Prezentare studii biblice (pe elev)',hu:'Bibliatanulmányok áttekintése (tanulónként)',ru:'Обзор библейских уроков (по ученику)',it:'Panoramica studi biblici (per studente)',pt:'Visão geral dos estudos bíblicos (por aluno)'});
-  var bsNotesLbl=tMap({nl:'Persoonlijke notities/opmerkingen (bijbelstudies en dagoverzicht) — staat standaard uit',en:'Personal notes/comments (Bible studies and daily overview) — off by default',es:'Notas/comentarios personales (estudios bíblicos y resumen diario) — desactivado por defecto',fr:'Notes/commentaires personnels (études bibliques et aperçu quotidien) — désactivé par défaut',de:'Persönliche Notizen/Kommentare (Bibelstudien und Tagesübersicht) — standardmäßig aus',ro:'Notițe/comentarii personale (studii biblice și prezentare zilnică) — dezactivat implicit',hu:'Személyes jegyzetek/megjegyzések (bibliatanulmányok és napi áttekintés) — alapértelmezetten ki',ru:'Личные заметки/комментарии (библейские уроки и ежедневный обзор) — по умолчанию выключено',it:'Note/commenti personali (studi biblici e panoramica giornaliera) — disattivato per impostazione predefinita',pt:'Notas/comentários pessoais (estudos bíblicos e visão geral diária) — desativado por predefinição'});
   var contactPhoneLbl=tMap({nl:'— telefoonnummer',en:'— phone number',es:'— número de teléfono',fr:'— numéro de téléphone',de:'— Telefonnummer',ro:'— număr de telefon',hu:'— telefonszám',ru:'— номер телефона',it:'— numero di telefono',pt:'— número de telefone'});
   var contactAddressLbl=tMap({nl:'— adres',en:'— address',es:'— dirección',fr:'— adresse',de:'— Adresse',ro:'— adresă',hu:'— cím',ru:'— адрес',it:'— indirizzo',pt:'— endereço'});
   var timelineLbl=tMap({nl:'Dagoverzicht',en:'Daily overview',es:'Resumen diario',fr:'Aperçu quotidien',de:'Tagesübersicht',ro:'Prezentare zilnică',hu:'Napi áttekintés',ru:'Ежедневный обзор',it:'Panoramica giornaliera',pt:'Visão geral diária'});
@@ -24125,7 +24152,6 @@ function openPdfExportOptions(mode){
   h+=pdfOptRow('pdf-opt-km',kmLbl,prefs.km);
   h+=pdfOptRow('pdf-opt-kosten',kostenLbl,prefs.kosten);
   h+=pdfOptRow('pdf-opt-bs',bsLbl,prefs.bs);
-  h+=pdfOptRow('pdf-opt-bs-notes',bsNotesLbl,prefs.bsNotes);
   h+=pdfOptRow('pdf-opt-contact-phone',contactPhoneLbl,prefs.contactPhone,true);
   h+=pdfOptRow('pdf-opt-contact-address',contactAddressLbl,prefs.contactAddress,true);
   h+=pdfOptRow('pdf-opt-timeline',timelineLbl,prefs.timeline);
@@ -24181,7 +24207,6 @@ function confirmPdfExport(mode){
     km: !!(document.getElementById('pdf-opt-km')||{}).checked,
     kosten: !!(document.getElementById('pdf-opt-kosten')||{}).checked,
     bs: !!(document.getElementById('pdf-opt-bs')||{}).checked,
-    bsNotes: !!(document.getElementById('pdf-opt-bs-notes')||{}).checked,
     contactPhone: !!(document.getElementById('pdf-opt-contact-phone')||{}).checked,
     contactAddress: !!(document.getElementById('pdf-opt-contact-address')||{}).checked,
     timeline: !!(document.getElementById('pdf-opt-timeline')||{}).checked,
@@ -24219,7 +24244,6 @@ function confirmPdfExport(mode){
     pv.classList.toggle('hide-km',!prefs.km);
     pv.classList.toggle('hide-kosten',!prefs.kosten);
     pv.classList.toggle('hide-bs',!prefs.bs);
-    pv.classList.toggle('hide-bs-notes',!prefs.bsNotes);
     pv.classList.toggle('hide-contact-phone',!prefs.contactPhone);
     pv.classList.toggle('hide-contact-address',!prefs.contactAddress);
     pv.classList.toggle('hide-timeline',!prefs.timeline);
@@ -29814,7 +29838,8 @@ function openEditEntryModal(entryId){
   h+='<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer"><input id="ee-thema-completed" type="checkbox" '+(e.themaCompleted===false?'':'checked')+' style="width:16px;height:16px;flex-shrink:0;margin-top:2px"><span><span style="font-size:13px;display:block">'+t('thema_completed_lbl')+'</span><span style="font-size:11px;color:var(--text3)">'+t('thema_completed_hint')+'</span></span></label>';
   h+='</div>';
   h+='<span class="form-label">'+t('wizard_note')+'</span>';
-  h+='<textarea id="ee-opmerking" style="width:100%;height:60px;margin-bottom:12px">'+(e.opmerking||'')+'</textarea>';
+  h+='<textarea id="ee-opmerking" style="width:100%;height:60px;margin-bottom:4px">'+(e.opmerking||'')+'</textarea>';
+  h+='<div style="margin-bottom:12px">'+noteShareCheckboxHtml('ee-opmerking-share',!!e.notitieDelen)+'</div>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
   h+='<button class="btn danger sm" onclick="deleteEntry('+entryIdArg+');closeModals()" style="flex:0 0 auto">'
     +t('delete_btn')+'</button>';
@@ -29853,6 +29878,7 @@ function duplicateEditEntry(entryId){
   var thema=document.getElementById('ee-thema');
   var omsch=document.getElementById('ee-omschrijving');
   var opm=document.getElementById('ee-opmerking');
+  var opmShare=document.getElementById('ee-opmerking-share');
   if(datum)e.datum=datum.value;
   if(tijd)e.tijd=tijd.value||'';
   if(uren)e.uren=parseFloat(uren.value)||0;
@@ -29900,6 +29926,7 @@ function duplicateEditEntry(entryId){
   if(eeCompleted2)e.themaCompleted=eeCompleted2.checked;
   if(omsch)e.omschrijving=omsch.value;
   if(opm)e.opmerking=opm.value;
+  if(opmShare)e.notitieDelen=opmShare.checked;
   db.entries.unshift(e);
   save();
   closeModals();
@@ -29923,6 +29950,7 @@ function saveEditEntry(entryId){
   var thema=document.getElementById('ee-thema');
   var omsch=document.getElementById('ee-omschrijving');
   var opm=document.getElementById('ee-opmerking');
+  var opmShare=document.getElementById('ee-opmerking-share');
   if(datum)e.datum=datum.value;
   if(tijd)e.tijd=tijd.value||'';
   if(uren)e.uren=parseFloat(uren.value)||0;
@@ -29970,6 +29998,7 @@ function saveEditEntry(entryId){
   if(eeCompleted)e.themaCompleted=eeCompleted.checked;
   if(omsch)e.omschrijving=omsch.value;
   if(opm)e.opmerking=opm.value;
+  if(opmShare)e.notitieDelen=opmShare.checked;
   // "Meerdere studenten" (see openEditEntryModal comment above) - diff the
   // checked contacts against whichever companion entries already share this
   // entry's groupStudyId, so re-opening the edit modal and changing the
