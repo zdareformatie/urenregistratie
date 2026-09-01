@@ -5888,7 +5888,8 @@ const CHANGELOG=[
     {nl:'De knop "Wat is er bijgewerkt?" heet nu "Update #" en toont het laatste updatenummer; ernaast staat nu ook de knop "App bijwerken".',en:'The "What has been updated?" button is now called "Update #" and shows the latest update number; the "Update app" button now sits right next to it.'},
     {nl:'Bij "Activiteit herhalen" staat nu een aanvinkvakje "Huidige tijd gebruiken": aangevinkt vult het automatisch de huidige tijd in (afgerond op het kwartier), uitgevinkt wordt er geen tijd ingevuld.',en:'"Repeat activity" now has a "Use current time" checkbox: checked auto-fills the current time (rounded to the quarter hour), unchecked leaves the time blank.'},
     {nl:'Het "Activiteit herhalen" venster staat nu in het midden van het scherm in plaats van onderaan.',en:'The "Repeat activity" popup is now centered on screen instead of anchored to the bottom.'},
-    {nl:'Bugfix: bij het herhalen van een activiteit met een datum in de toekomst werd de ingevulde tijd niet opgeslagen.',en:'Bugfix: when repeating an activity with a future date, the time entered wasn’t actually being saved.'}
+    {nl:'Bugfix: bij het herhalen van een activiteit met een datum in de toekomst werd de ingevulde tijd niet opgeslagen.',en:'Bugfix: when repeating an activity with a future date, the time entered wasn’t actually being saved.'},
+    {nl:'De scheidingslijntjes tussen Datum/Uren/Categorie/Omschrijving in het overzichtvenster (Formulier en kalender) zijn verwijderd voor een rustiger uiterlijk.',en:'The divider lines between Date/Hours/Category/Description in the entry summary popup (Logbook and calendar) have been removed for a cleaner look.'}
   ]},
   {date:'2026-09-01',items:[
     {nl:'Een invoer openen in het logboek toont nu eerst een kort overzicht van wat al is ingevuld, met "Meer weergeven" om het volledige formulier te openen.',en:'Opening an entry in the logbook now first shows a short summary of what’s already filled in, with "Show more" to open the full form.'},
@@ -29673,7 +29674,7 @@ function openEditEntryModal(entryId){
   // form (unchanged field IDs, so saveEditEntry/duplicateEditEntry keep
   // working) for the gray/empty fields that still need completing.
   var eeSumRows='';
-  var eeSumRow=function(label,val){eeSumRows+='<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text3)">'+label+'</span><span style="font-weight:600;text-align:right">'+val+'</span></div>';};
+  var eeSumRow=function(label,val){eeSumRows+='<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;font-size:13px"><span style="color:var(--text3)">'+label+'</span><span style="font-weight:600;text-align:right">'+val+'</span></div>';};
   eeSumRow(t('wizard_date'), formatDate(e.datum));
   if(e.tijd)eeSumRow(t('wizard_time'), formatTimeDisplay(e.tijd));
   if(parseFloat(e.uren)>0)eeSumRow(t('wizard_hours'), parseFloat(e.uren)+t('hours_abbr'));
