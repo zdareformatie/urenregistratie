@@ -15828,7 +15828,7 @@ function openEntryDetailModal(entryId){
   h+=buildEntryDetailInnerHtml(e);
   h+='<div style="display:flex;gap:8px;margin-top:14px">';
   h+='<button class="btn" onclick="closeModals();quickRepeatFromLogEntry('+ssIdArg(e.id)+')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13"><use href="#ico-refresh"/></svg>'+(t('repeat_lbl')||'Herhaal')+'</button>';
-  h+='<button class="btn primary" onclick="closeModals();openEditEntryModal('+ssIdArg(e.id)+')" style="flex:1">'+t('edit_btn')+'</button>';
+  h+='<button class="btn primary" onclick="closeModals();openEditEntryModal('+ssIdArg(e.id)+',true)" style="flex:1">'+t('edit_btn')+'</button>';
   h+='</div>';
   h+='</div>';
   showModal(h);
@@ -27498,7 +27498,7 @@ function renderStudieRow(les, stats) {
     // Small tap target next to the existing lists, so a study that already
     // has contacts can still get more backfilled (e.g. a contact you know
     // received it in a group session that never got individually logged).
-    h += '<div style="text-align:right;margin-bottom:4px"><span onclick="openStudieBackfillModal(\''+les.code+'\')" style="font-size:10px;font-weight:600;color:var(--brand);cursor:pointer">'+studieAddContactsLbl+'</span></div>';
+    h += '<div style="text-align:left;margin-bottom:4px"><span onclick="openStudieBackfillModal(\''+les.code+'\')" style="font-size:10px;font-weight:600;color:var(--brand);cursor:pointer">'+studieAddContactsLbl+'</span></div>';
     if(stats.actueel.length) {
       h += '<div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:6px">&#128336; '+t('studie_current')+' ('+stats.actueel.length+')</div>';
       stats.actueel.forEach(function(c) {
@@ -29879,7 +29879,7 @@ function saveStudyEntry(cursistId){
 }
 
 
-function openEditEntryModal(entryId){
+function openEditEntryModal(entryId,skipSummary){
   var e=db.entries.find(function(x){return x.id==entryId;});
   if(!e)return;
   var entryIdArg=ssIdArg(entryId);
@@ -29943,7 +29943,7 @@ function openEditEntryModal(entryId){
   if(e.thema)eeSumRow(t('wizard_theme'), escapeHtml(getThemaDisplay(e.thema)||e.thema));
   if(e.opmerking)eeSumRow(t('wizard_note'), escapeHtml(e.opmerking));
   var eeMoreLbl=LANG==='en'?'Show more':LANG==='es'?'Mostrar más':LANG==='fr'?'Afficher plus':LANG==='de'?'Mehr anzeigen':LANG==='ro'?'Arată mai mult':LANG==='hu'?'Több megjelenítése':LANG==='ru'?'Показать больше':LANG==='it'?'Mostra di più':LANG==='pt'?'Mostrar mais':'Meer weergeven';
-  var sumH='<div id="ee-summary">';
+  var sumH='<div id="ee-summary"'+(skipSummary?' style="display:none"':'')+'>';
   sumH+='<div style="font-size:15px;font-weight:700;margin-bottom:14px">'+escapeHtml(e.omschrijving||getCatLabel(e.categorie))+'</div>';
   sumH+='<div style="margin-bottom:14px">'+eeSumRows+'</div>';
   sumH+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
@@ -29953,7 +29953,7 @@ function openEditEntryModal(entryId){
 
   var h='<div style="padding:16px;max-height:85vh;overflow-y:auto">';
   h+=sumH;
-  h+='<div id="ee-full-form" style="display:none">';
+  h+='<div id="ee-full-form" style="display:'+(skipSummary?'block':'none')+'">';
   h+='<div style="font-size:15px;font-weight:700;margin-bottom:14px">'
     +(LANG==='en'?'Edit entry':LANG==='es'?'Editar registro':LANG==='fr'?'Modifier entrée':LANG==='de'?'Eintrag bearbeiten':LANG==='ro'?'Editare intrare':LANG==='hu'?'Bejegyzés szerkesztése':LANG==='ru'?'Редактировать запись':'Invoer bewerken')+'</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
