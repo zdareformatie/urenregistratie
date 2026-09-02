@@ -23102,6 +23102,73 @@ function savePlanned(){
   save();
 }
 
+// Same future-vs-past classification the wizard already does for a brand
+// new draft (see wizardDraftIsFuture) - a date later than today is future,
+// today is future only if a time was given and that time hasn't happened
+// yet, anything else counts as already-happened. Pulled out as a standalone
+// helper (params instead of reading the wizard's `draft` global) so it can
+// also be applied when an ALREADY-LOGGED entry gets edited outside the
+// wizard - the spreadsheet and the full edit-entry modal don't have their
+// own version of this check, so editing a row's date/time into the future
+// there just silently left it sitting in the registered log.
+function isEntryDateTimeFuture(datum,tijd){
+  if(!datum)return false;
+  var todayStr=ymdLocal();
+  if(datum>todayStr)return true;
+  if(datum<todayStr)return false;
+  if(tijd){
+    var now=new Date();
+    var nowStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    return tijd>nowStr;
+  }
+  return false;
+}
+// Moves a live db.entries record into db.planned once its date/time has
+// been edited into the future, mirroring how the wizard itself would have
+// classified it from the start (see wSave/saveDraftAsPlanned). Called after
+// the spreadsheet or the full edit-entry modal saves a date/time change -
+// without this, an entry duplicated or edited to a later time today (or a
+// future date) kept showing as "registered" instead of moving to Planned,
+// which is what actually happened was reported: editing a duplicated
+// spreadsheet row to a later time today, but it stayed in the registered
+// log rather than becoming an upcoming/planned item.
+// Skips entries that are part of a multi-student group (groupStudyId) -
+// their linked companion entries aren't touched here, so moving just the
+// primary would leave orphaned siblings behind; that combination is rare
+// enough not to be worth the extra complexity.
+// Returns true if the entry was moved - callers should treat their local
+// reference to it as no longer part of db.entries afterward.
+function reclassifyEntryIfFuture(entry){
+  if(!entry||entry.groupStudyId)return false;
+  if(!isEntryDateTimeFuture(entry.datum,entry.tijd))return false;
+  var idx=db.entries.indexOf(entry);
+  if(idx<0)return false;
+  db.entries.splice(idx,1);
+  ensurePlanned();
+  db.planned.push({
+    id:genUniqueId(db.planned),
+    datum:entry.datum,
+    time:entry.tijd||'',
+    categorie:entry.categorie||'',
+    cursistId:entry.cursistId||'',
+    cursistNaam:entry.cursistNaam||'',
+    gemeente:entry.gemeente||'',
+    omschrijving:entry.omschrijving||'',
+    thema:entry.thema||'',
+    themacode:entry.themacode||'',
+    themaCompleted:entry.themaCompleted!==false,
+    uren:parseFloat(entry.uren)||0,
+    reisUren:parseFloat(entry.reisUren)||0,
+    km:parseFloat(entry.km)||0,
+    kosten:parseFloat(entry.kosten)||0,
+    opmerking:entry.opmerking||'',
+    notitieDelen:!!entry.notitieDelen,
+    completed:false,skipped:false,reminded:false
+  });
+  savePlanned();
+  return true;
+}
+
 // Get smart suggestions for a planned activity
 function getAgendaSuggestion(categorie, cursistId){
   var sug = getAutofillSuggestion(categorie, cursistId);
@@ -30194,8 +30261,30 @@ function duplicateEditEntry(entryId){
   if(omsch)e.omschrijving=omsch.value;
   if(opm)e.opmerking=opm.value;
   if(opmShare)e.notitieDelen=opmShare.checked;
-  db.entries.unshift(e);
-  save();
+  // Same future-check as saveEditEntry - "Save as new" with a future date/
+  // time should land in Planned, not the registered log, same as the wizard
+  // would have classified a fresh entry with that date/time. `e` isn't in
+  // db.entries yet here, so this checks BEFORE deciding which array to add
+  // it to, rather than reclassifyEntryIfFuture's after-the-fact move.
+  if(!e.groupStudyId&&isEntryDateTimeFuture(e.datum,e.tijd)){
+    ensurePlanned();
+    db.planned.push({
+      id:genUniqueId(db.planned),
+      datum:e.datum,time:e.tijd||'',categorie:e.categorie||'',
+      cursistId:e.cursistId||'',cursistNaam:e.cursistNaam||'',
+      gemeente:e.gemeente||'',omschrijving:e.omschrijving||'',
+      thema:e.thema||'',themacode:e.themacode||'',
+      themaCompleted:e.themaCompleted!==false,
+      uren:parseFloat(e.uren)||0,reisUren:parseFloat(e.reisUren)||0,
+      km:parseFloat(e.km)||0,kosten:parseFloat(e.kosten)||0,
+      opmerking:e.opmerking||'',notitieDelen:!!e.notitieDelen,
+      completed:false,skipped:false,reminded:false
+    });
+    savePlanned();
+  } else {
+    db.entries.unshift(e);
+    save();
+  }
   closeModals();
   renderLog();
 }
@@ -30305,7 +30394,13 @@ function saveEditEntry(entryId){
     e.groupStudyId='';
   }
   touch(e);
-  save();
+  // If this edit pushed the date/time into the future, this entry no longer
+  // belongs in the registered log at all - move it to Planned instead (see
+  // reclassifyEntryIfFuture). That call already saves via savePlanned() when
+  // it moves something, so the plain save() below only needs to run when it
+  // didn't.
+  var eeMovedToPlanned=reclassifyEntryIfFuture(e);
+  if(!eeMovedToPlanned)save();
   closeModals();
   // Refresh whichever view is actually on-screen right now, same dispatch
   // saveQuickRepeat() already uses — not just renderLog() unconditionally.
