@@ -27560,17 +27560,28 @@ function renderStudieContact(c, status) {
 // checklist of all contacts (already-linked ones pre-checked and disabled,
 // so status is visible at a glance) plus a date-or-just-a-year picker, and
 // creates one 0-hour "Bijbelstudie geven" entry per newly-checked contact.
-function openStudieBackfillModal(lesCode) {
-  var lesRaw = STUDIE_DATA.find(function(l){return l.code===lesCode;});
+function openStudieBackfillModal(lesCode, freeThema) {
+  // freeThema covers "Andere Bijbelstudies" (renderVrijOnderwerpSection) -
+  // subjects logged free-text from the wizard rather than picked from the
+  // Handbook's fixed BS-coded lessons. Those never went through STUDIE_DATA
+  // at all, so there's no lesCode to look up; the raw subject text stands
+  // in for both the title and (via saveStudieBackfill) the entry's thema.
+  var lesRaw = freeThema ? {code:'', titel:freeThema} : STUDIE_DATA.find(function(l){return l.code===lesCode;});
   if(!lesRaw) return;
-  var stats = getStudieStats(lesCode);
   var linkedIds = {};
-  stats.voltooid.concat(stats.actueel).forEach(function(c) {
-    if(c.entryId!=null) {
-      var e = db.entries.find(function(x){return x.id==c.entryId;});
-      if(e && e.cursistId!=null) linkedIds[String(e.cursistId)] = true;
-    }
-  });
+  if(freeThema) {
+    db.entries.forEach(function(e) {
+      if(e.categorie==='Bijbelstudie geven' && e.thema===freeThema && e.cursistId!=null) linkedIds[String(e.cursistId)] = true;
+    });
+  } else {
+    var stats = getStudieStats(lesCode);
+    stats.voltooid.concat(stats.actueel).forEach(function(c) {
+      if(c.entryId!=null) {
+        var e = db.entries.find(function(x){return x.id==c.entryId;});
+        if(e && e.cursistId!=null) linkedIds[String(e.cursistId)] = true;
+      }
+    });
+  }
   var title = tMap({nl:'Contacten toevoegen die deze les al ontvingen',en:'Add contacts who already received this lesson',es:'Añadir contactos que ya recibieron esta lección',fr:'Ajouter des contacts ayant déjà reçu cette leçon',de:'Kontakte hinzufügen, die diese Lektion bereits erhalten haben',ro:'Adaugă contacte care au primit deja această lecție',hu:'Adj hozzá kapcsolatokat, akik már megkapták ezt a leckét',ru:'Добавить контакты, которые уже получили этот урок',it:'Aggiungi contatti che hanno già ricevuto questa lezione',pt:'Adicionar contactos que já receberam esta lição'});
   var hint = tMap({nl:'Voor als je weet dat iemand deze les al heeft gehad, maar niet meer precies wanneer. Kies een datum of alleen een jaar.',en:"For when you know someone already had this lesson, but not exactly when. Pick a date or just a year.",es:'Para cuando sabes que alguien ya recibió esta lección, pero no exactamente cuándo. Elige una fecha o solo un año.',fr:"Pour quand vous savez que quelqu'un a déjà reçu cette leçon, mais pas exactement quand. Choisissez une date ou juste une année.",de:'Für den Fall, dass du weißt, dass jemand diese Lektion bereits hatte, aber nicht genau wann. Wähle ein Datum oder nur ein Jahr.',ro:'Pentru când știi că cineva a avut deja această lecție, dar nu exact când. Alege o dată sau doar un an.',hu:'Arra az esetre, ha tudod, hogy valaki már megkapta ezt a leckét, de nem pontosan mikor. Válassz dátumot vagy csak évet.',ru:'На случай, если вы знаете, что кто-то уже получил этот урок, но не помните точно когда. Выберите дату или только год.',it:'Per quando sai che qualcuno ha già ricevuto questa lezione, ma non esattamente quando. Scegli una data o solo un anno.',pt:'Para quando sabes que alguém já recebeu esta lição, mas não exatamente quando. Escolhe uma data ou apenas um ano.'});
   var onlyYearLbl = tMap({nl:'Alleen jaar (geen exacte datum bekend)',en:'Year only (exact date unknown)',es:'Solo año (fecha exacta desconocida)',fr:'Année seulement (date exacte inconnue)',de:'Nur Jahr (genaues Datum unbekannt)',ro:'Doar anul (data exactă necunoscută)',hu:'Csak év (pontos dátum ismeretlen)',ru:'Только год (точная дата неизвестна)',it:'Solo anno (data esatta sconosciuta)',pt:'Apenas ano (data exata desconhecida)'});
@@ -27600,7 +27611,14 @@ function openStudieBackfillModal(lesCode) {
   h += '<div style="font-size:15px;font-weight:700;margin-bottom:4px">'+title+'</div>';
   h += '<div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5">'+hint+'</div>';
   h += '<div id="sbf-warn" style="display:none;font-size:11px;color:var(--red);margin-bottom:8px">'+noneAddedLbl+'</div>';
-  h += '<div style="max-height:240px;overflow-y:auto;margin-bottom:12px;padding:0 2px" id="sbf-list">'+listHtml+'</div>';
+  h += '<div style="max-height:240px;overflow-y:auto;margin-bottom:4px;padding:0 2px" id="sbf-list">'+listHtml+'</div>';
+  // Not just picking from existing contacts - sometimes the person who
+  // received this study isn't in the app yet at all. Same "name only, fill
+  // in the rest later from Contacts" shortcut as openEditEntryModal's
+  // ee-cursist-new field (resolveEeNewCursist), so this doesn't force a
+  // detour out of the popup just to add someone first.
+  h += '<div style="margin-bottom:10px"><span onclick="toggleSbfNewCursist()" style="font-size:11px;font-weight:600;color:var(--brand);cursor:pointer">'+t('add_cursist')+'</span>';
+  h += '<div id="sbf-new-cursist-wrap" style="display:none;margin-top:6px"><input type="text" id="sbf-new-cursist" placeholder="'+(t('quick_add_name_ph')||t('cursist_naam_lbl')||'Naam')+'" style="width:100%"></div></div>';
   h += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px"><input type="checkbox" id="sbf-onlyyear" onchange="toggleSbfDateMode()" style="width:15px;height:15px;flex-shrink:0"><span style="font-size:12px">'+onlyYearLbl+'</span></label>';
   h += '<div id="sbf-date-wrap" style="margin-bottom:12px"><span class="form-label">'+t('wizard_date')+'</span><input type="date" id="sbf-date" value="'+ymdLocal()+'" style="width:100%"></div>';
   h += '<div id="sbf-year-wrap" style="display:none;margin-bottom:12px"><span class="form-label">'+t('wizard_date')+'</span><select id="sbf-year" style="width:100%">'+yearOpts+'</select></div>';
@@ -27609,9 +27627,20 @@ function openStudieBackfillModal(lesCode) {
   // for someone who's only partway through the study and should still show
   // up in "Actueel mee bezig" as needing a next session.
   h += '<label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;cursor:pointer"><input id="sbf-completed" type="checkbox" checked style="width:16px;height:16px;flex-shrink:0;margin-top:2px"><span><span style="font-size:13px;display:block">'+t('thema_completed_lbl')+'</span><span style="font-size:11px;color:var(--text3)">'+t('thema_completed_hint')+'</span></span></label>';
-  h += '<div style="display:flex;gap:8px"><button class="btn" onclick="closeModals()" style="flex:1">'+t('wizard_cancel')+'</button><button class="btn primary" onclick="saveStudieBackfill(\''+lesCode+'\')" style="flex:1">'+t('save_btn')+'</button></div>';
+  h += '<div style="display:flex;gap:8px"><button class="btn" onclick="closeModals()" style="flex:1">'+t('wizard_cancel')+'</button><button class="btn primary" onclick="saveStudieBackfill('+ssIdArg(lesCode)+','+(freeThema?ssIdArg(freeThema).replace(/"/g,'&quot;'):'null')+')" style="flex:1">'+t('save_btn')+'</button></div>';
   h += '</div>';
   showModal(h);
+}
+
+function toggleSbfNewCursist() {
+  var wrap = document.getElementById('sbf-new-cursist-wrap');
+  if(!wrap) return;
+  var showing = wrap.style.display === 'block';
+  wrap.style.display = showing ? 'none' : 'block';
+  if(!showing) {
+    var inp = document.getElementById('sbf-new-cursist');
+    if(inp) inp.focus();
+  }
 }
 
 function toggleSbfDateMode() {
@@ -27623,11 +27652,29 @@ function toggleSbfDateMode() {
   yw.style.display = cb.checked ? 'block' : 'none';
 }
 
-function saveStudieBackfill(lesCode) {
-  var lesRaw = STUDIE_DATA.find(function(l){return l.code===lesCode;});
+function saveStudieBackfill(lesCode, freeThema) {
+  var lesRaw = freeThema ? {code:'', titel:freeThema} : STUDIE_DATA.find(function(l){return l.code===lesCode;});
   if(!lesRaw) return;
   var checked = Array.prototype.slice.call(document.querySelectorAll('.sbf-cb:checked:not(:disabled)'));
-  if(!checked.length) {
+  var selected = checked.map(function(cb) {
+    return (db.cursisten||[]).find(function(c){return String(c.id)===String(cb.value);});
+  }).filter(Boolean);
+  // Same bare-minimum "name only, fill in the rest later" shortcut as
+  // resolveEeNewCursist (openEditEntryModal) - lets someone who isn't in
+  // the app yet be added right from this popup instead of a detour to the
+  // Contacts tab first. Created (and included) only on Save, same as that
+  // flow, so cancelling out of the modal creates nothing.
+  var newNameEl = document.getElementById('sbf-new-cursist');
+  var newName = newNameEl && newNameEl.value ? newNameEl.value.trim() : '';
+  if(newName) {
+    var parts = newName.split(/\s+/);
+    var voornaam = parts.shift() || '';
+    var achternaam = parts.join(' ');
+    var newCu = {id:genUniqueId(db.cursisten),naam:newName,voornaam:voornaam,achternaam:achternaam,type:'cursist',adres:'',postcode:'',plaats:'',land:'',tel:'',contactFrequency:'',extraZorg:false,opmerking:'',doopkandidaat:false,personTypes:['contact'],personType:'contact',gemeente:''};
+    db.cursisten.push(newCu);
+    selected.push(newCu);
+  }
+  if(!selected.length) {
     var warn = document.getElementById('sbf-warn');
     if(warn) warn.style.display = 'block';
     return;
@@ -27647,10 +27694,8 @@ function saveStudieBackfill(lesCode) {
   var completedEl = document.getElementById('sbf-completed');
   var isCompleted = completedEl ? completedEl.checked : true;
   var catDef = findCatByLabel('Bijbelstudie geven');
-  var ids = genEntryIds(checked.length);
-  checked.forEach(function(cb, i) {
-    var cu = (db.cursisten||[]).find(function(c){return String(c.id)===String(cb.value);});
-    if(!cu) return;
+  var ids = genEntryIds(selected.length);
+  selected.forEach(function(cu, i) {
     var entry = {
       id: ids[i],
       datum: datum,
@@ -29243,6 +29288,12 @@ function renderVrijOnderwerpSection(){
   var subjects=Object.keys(bySubject).sort();
   var h='<div class="card" style="padding:12px 14px;margin-bottom:10px">';
   h+='<div class="card-label" style="margin-bottom:8px">'+(LANG==='en'?'Other Bible Studies':LANG==='es'?'Otros Estudios Bíblicos':LANG==='fr'?'Autres études bibliques':LANG==='de'?'Andere Bibelstudien':LANG==='ro'?'Alte studii biblice':LANG==='hu'?'Egyéb bibliatan':LANG==='ru'?'Другие изучения':'Andere Bijbelstudies')+'</div>';
+  // Free-subject studies never had the "+ add contacts who already
+  // received it" backfill link that STUDIE_DATA lessons got - they're
+  // logged the same way (categorie 'Bijbelstudie geven') but keyed by raw
+  // subject text instead of a BS code, so openStudieBackfillModal's
+  // freeThema param routes them through the same modal/save logic.
+  var addContactsLbl = tMap({nl:'+ Contacten toevoegen',en:'+ Add contacts',es:'+ Añadir contactos',fr:'+ Ajouter des contacts',de:'+ Kontakte hinzufügen',ro:'+ Adaugă contacte',hu:'+ Kapcsolatok hozzáadása',ru:'+ Добавить контакты',it:'+ Aggiungi contatti',pt:'+ Adicionar contactos'});
   subjects.forEach(function(subj){
     var ents=bySubject[subj];
     var safeCode='vvv'+subj.replace(/[^a-zA-Z0-9]/g,'X');
@@ -29263,6 +29314,8 @@ function renderVrijOnderwerpSection(){
     h+='<svg width="14" height="14" style="flex-shrink:0;color:var(--text3);transition:transform .2s" class="sr-arrow"><use href="#ico-chevron-down"/></svg>';
     h+='</div>';
     h+='<div class="sr-detail" style="display:none;padding-bottom:12px">';
+    var subjArg = ssIdArg(subj).replace(/"/g,'&quot;');
+    h+='<div style="text-align:left;margin-bottom:4px"><span onclick="openStudieBackfillModal('+ssIdArg('')+','+subjArg+')" style="font-size:10px;font-weight:600;color:var(--brand);cursor:pointer">'+addContactsLbl+'</span></div>';
     if(contacts.length){
       h+='<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px">Contacten</div>';
       contacts.forEach(function(c){
