@@ -27604,6 +27604,11 @@ function openStudieBackfillModal(lesCode) {
   h += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px"><input type="checkbox" id="sbf-onlyyear" onchange="toggleSbfDateMode()" style="width:15px;height:15px;flex-shrink:0"><span style="font-size:12px">'+onlyYearLbl+'</span></label>';
   h += '<div id="sbf-date-wrap" style="margin-bottom:12px"><span class="form-label">'+t('wizard_date')+'</span><input type="date" id="sbf-date" value="'+ymdLocal()+'" style="width:100%"></div>';
   h += '<div id="sbf-year-wrap" style="display:none;margin-bottom:12px"><span class="form-label">'+t('wizard_date')+'</span><select id="sbf-year" style="width:100%">'+yearOpts+'</select></div>';
+  // Same "Onderwerp afgerond" signal the wizard/edit modal use elsewhere -
+  // without it every backfilled contact silently landed in "Voltooid", even
+  // for someone who's only partway through the study and should still show
+  // up in "Actueel mee bezig" as needing a next session.
+  h += '<label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;cursor:pointer"><input id="sbf-completed" type="checkbox" checked style="width:16px;height:16px;flex-shrink:0;margin-top:2px"><span><span style="font-size:13px;display:block">'+t('thema_completed_lbl')+'</span><span style="font-size:11px;color:var(--text3)">'+t('thema_completed_hint')+'</span></span></label>';
   h += '<div style="display:flex;gap:8px"><button class="btn" onclick="closeModals()" style="flex:1">'+t('wizard_cancel')+'</button><button class="btn primary" onclick="saveStudieBackfill(\''+lesCode+'\')" style="flex:1">'+t('save_btn')+'</button></div>';
   h += '</div>';
   showModal(h);
@@ -27639,6 +27644,8 @@ function saveStudieBackfill(lesCode) {
     var dateEl = document.getElementById('sbf-date');
     datum = dateEl && dateEl.value ? dateEl.value : ymdLocal();
   }
+  var completedEl = document.getElementById('sbf-completed');
+  var isCompleted = completedEl ? completedEl.checked : true;
   var catDef = findCatByLabel('Bijbelstudie geven');
   var ids = genEntryIds(checked.length);
   checked.forEach(function(cb, i) {
@@ -27653,7 +27660,7 @@ function saveStudieBackfill(lesCode) {
       cursistNaam: cu.naam,
       thema: lesRaw.titel,
       themacode: lesRaw.code,
-      themaCompleted: true,
+      themaCompleted: isCompleted,
       uren: 0
     };
     if(approxYear) entry.approxDate = true;
