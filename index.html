@@ -30030,7 +30030,14 @@ function loadDemoData(){
   // last few weeks. ----
   var entries=[];
   var studyContacts=[cThomas,cMiriam,cAnna,cRobert];
-  var themas=[['KUB Les 1','De Bijbel, de Heilige Schrift'],['KUB Les 2','Wie is God?'],['KUB Les 3','De grote strijd'],['ES thema 1','Rijk zonder het te weten'],['ES thema 2','De sabbat'],['ES thema 3','Het onderzoekend oordeel']];
+  // Was hardcoded to the old "KUB Les N"/"ES thema N" Dutch lesson names,
+  // which no longer exist in THEMAS/STUDIE_DATA (courses are coded "BS 1"..
+  // "BS 51" now). getThemaDisplay() can't translate a code it doesn't
+  // recognize, so those demo entries always showed their raw Dutch text
+  // verbatim no matter what language the app was in. Pulling real codes
+  // straight from THEMAS keeps demo data on the current naming scheme, so
+  // it translates correctly like any other entry.
+  var themas=THEMAS.filter(function(t){return t[0]!=='Vrij onderwerp';}).slice(0,6);
   var themaIdx=0;
   function nextThema(){var th=themas[themaIdx%themas.length];themaIdx++;return th;}
   for(var w=51;w>=0;w--){
@@ -30073,7 +30080,7 @@ function loadDemoData(){
   // after its date (to show the "did this happen?" prompt), so the
   // calendar and the Home "Coming up" card both have something to show. ----
   db.planned=[
-    {id:Date.now()+1,datum:fmt(addDays(today,2)),time:'19:00',categorie:'Bijbelstudie geven',cursistId:cThomas.id,cursistNaam:cThomas.naam,omschrijving:'',thema:'KUB Les 4 - De wet van God',themacode:'KUB Les 4',themaCompleted:false,uren:1.25,km:9,kosten:0,opmerking:'',completed:false,skipped:false,reminded:false},
+    {id:Date.now()+1,datum:fmt(addDays(today,2)),time:'19:00',categorie:'Bijbelstudie geven',cursistId:cThomas.id,cursistNaam:cThomas.naam,omschrijving:'',thema:'BS 23 - '+(THEMAS.find(function(t){return t[0]==='BS 23';})||['','The Law Of God (Ten Commandments)'])[1],themacode:'BS 23',themaCompleted:false,uren:1.25,km:9,kosten:0,opmerking:'',completed:false,skipped:false,reminded:false},
     {id:Date.now()+2,datum:fmt(addDays(today,5)),time:'14:00',categorie:'Bezoek',cursistId:cCornelia.id,cursistNaam:cCornelia.naam,omschrijving:'',thema:'',themacode:'',themaCompleted:true,uren:1,km:6,kosten:0,opmerking:'',completed:false,skipped:false,reminded:false},
     {id:Date.now()+3,datum:fmt(addDays(today,-3)),time:'20:00',categorie:'Tel./WhatsApp contact',cursistId:cDavid.id,cursistNaam:cDavid.naam,omschrijving:'',thema:'',themacode:'',themaCompleted:true,uren:0.25,km:0,kosten:0,opmerking:'',completed:false,skipped:false,reminded:false}
   ];
