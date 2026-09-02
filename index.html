@@ -9535,7 +9535,13 @@ function ssEditCell(id,field,el){
     // For datum, show the validated/saved value rather than raw typed text -
     // an incomplete or invalid date would otherwise flash in the cell until
     // the next full re-render quietly replaced it.
-    el.textContent=(field==='datum'?(entry.datum?ssFormatDateCell(entry.datum):''):nv)||orig;
+    // Note: this must NOT fall back to `orig` when the saved value is an
+    // empty string - `orig` is only for the Escape-to-cancel handler above.
+    // A prior version did `(...)||orig`, which meant clearing a cell (e.g.
+    // deleting Opmerkingen text on a duplicated row) would save the empty
+    // value correctly but the cell would visually snap back to its old text,
+    // making it look like the deletion silently failed.
+    el.textContent=field==='datum'?(entry.datum?ssFormatDateCell(entry.datum):''):nv;
   }
 
   // Commits the cell (sv()) and moves on. Used to be Excel-style (same
