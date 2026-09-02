@@ -5942,6 +5942,28 @@ function getKmRate(year){
   if(db&&db.settings&&db.settings.goalKmRate&&db.settings.goalKmRate>0)return db.settings.goalKmRate;
   return getKmRateForYear(year!==undefined&&year!==null?year:new Date().getFullYear());
 }
+// Correct km-reimbursement total for a set of entries that may span more
+// than one calendar year (e.g. a Rapport custom date range like May 2025 -
+// May 2026, which straddles a km-rate change). A plain `totalKm*getKmRate(
+// oneYear)` is only correct when every entry falls in the same year - across
+// a rate change it silently over/under-pays. Buckets km by the YEAR of each
+// entry's own datum, applies that year's own rate per bucket, then sums the
+// per-bucket reimbursements. This is a no-op (same result as the old
+// single-rate math) whenever all entries share one calendar year, so it's
+// safe to use everywhere the old totalKm*getKmRate(rapportYear) pattern
+// appeared, not just in range mode.
+function kmReimbursementForEntries(entries){
+  var byYear={};
+  (entries||[]).forEach(function(e){
+    var km=parseFloat(e&&e.km)||0;
+    if(!km)return;
+    var y=(e&&e.datum||'').slice(0,4);
+    byYear[y]=(byYear[y]||0)+km;
+  });
+  var total=0;
+  Object.keys(byYear).forEach(function(y){total+=byYear[y]*getKmRate(y);});
+  return total;
+}
 function getMonthsShort(){if(LANG==='en')return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];if(LANG==='es')return['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];if(LANG==='fr')return['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];if(LANG==='de')return['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];if(LANG==='ro')return['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];if(LANG==='hu')return['Jan','Feb','Már','Ápr','Máj','Jún','Júl','Aug','Sze','Okt','Nov','Dec'];if(LANG==='ru')return['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];if(LANG==='it')return['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];if(LANG==='pt')return['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return['Jan','Feb','Mrt','Apr','Mei','Jun','Jul','Aug','Sept','Okt','Nov','Dec'];}
 var MONTHS_NL=getMonthsShort();
 function getMonthsFull(){if(LANG==='en')return['January','February','March','April','May','June','July','August','September','October','November','December'];if(LANG==='es')return['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];if(LANG==='fr')return['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];if(LANG==='de')return['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];if(LANG==='ro')return['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];if(LANG==='hu')return['Január','Február','Március','Április','Május','Június','Július','Augusztus','Szeptember','Október','November','December'];if(LANG==='ru')return['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];if(LANG==='it')return['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];if(LANG==='pt')return['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];return['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];}
@@ -12306,7 +12328,16 @@ function renderSubbar(screen){
     ry.style.flexShrink='0';
     ry.textContent=t('year_view');
     ry.onclick=function(){rapportViewMode='year';renderRapport();renderSubbar('rapport');};
-    sb.appendChild(rm);sb.appendChild(ry);
+    // Third mode: a custom from/to month range (e.g. "May 2024 - May 2026"),
+    // for reports that span more than one calendar year or an arbitrary
+    // stretch that isn't a single month or a single whole year. Needs two
+    // month values first, so it opens a small picker modal instead of
+    // switching mode immediately like the month/year buttons do.
+    var rr=document.createElement('button');rr.className='g-subbar-btn'+(rapportViewMode==='range'?' active':'');
+    rr.style.flexShrink='0';
+    rr.textContent=rapportRangeLbl();
+    rr.onclick=function(){openRapportRangeModal();};
+    sb.appendChild(rm);sb.appendChild(ry);sb.appendChild(rr);
     var pillWrap=document.createElement('div');pillWrap.id='rapport-months-subbar';
     pillWrap.style.cssText='display:flex;gap:3px;flex-wrap:nowrap;flex-shrink:0;';
     sb.appendChild(pillWrap);
@@ -12319,7 +12350,7 @@ function renderRapportMonthPills(){
   if(!el)return;
   var yearEntries=filterByYear(db.entries,rapportYear);
   var months=[...new Set(yearEntries.map(function(e){return e.datum&&e.datum.substring(0,7);}).filter(Boolean))].sort();
-  if(rapportViewMode==='year'){el.innerHTML='';return;}
+  if(rapportViewMode==='year'||rapportViewMode==='range'){el.innerHTML='';return;}
   // Clear and build buttons with real event listeners (not outerHTML)
   el.innerHTML='';
   months.forEach(function(m){
@@ -17938,6 +17969,10 @@ function logLidBezoek(cursistId){
 
 // RAPPORT
 let rapportMonth='';let rapportYear='';let rapportViewMode='month';
+// Custom date-range mode ('range', alongside 'month'/'year') - both are
+// 'YYYY-MM' strings (year-month, no day), inclusive on both ends. Set via
+// openRapportRangeModal()/saveRapportRange() below.
+let rapportRangeFrom='';let rapportRangeTo='';
 var _lastChartData=null;
 // Dagoverzicht numbers-only mode + accordion state — same behavior as the
 // president app's own worker-panel version of this feature: the numbers-only
@@ -18132,7 +18167,12 @@ function renderRapport(){
   }
   // Update subbar month pills
   renderRapportMonthPills();
-  if(!yearEntries.length){
+  // Range mode's empty-state check needs to look at the actual selected
+  // range, not whatever year happens to still be sitting in rapportYear
+  // (leftover from the last month/year view - unrelated once a range has
+  // been picked via openRapportRangeModal/saveRapportRange).
+  var scopedEntries=rapportViewMode==='range'?filterByRange(db.entries,rapportRangeFrom,rapportRangeTo):yearEntries;
+  if(!scopedEntries.length){
     document.getElementById('rapport-content').innerHTML='<div class="empty">'+t('no_period')+'</div>';
     return;
   }
@@ -18239,11 +18279,16 @@ function _buildRapportInner(){
   // Rows created by "+ Nieuwe rij" but never given a category (categorie==='')
   // are drafts, not registered activities — exclude them here so they don't
   // show up as phantom 0u entries in every report/total below.
-  var data=(rapportViewMode==='year'?filterByYear(db.entries,rapportYear):filterByYearMonth(db.entries,rapportYear,rapportMonth)).filter(function(e){return !!e.categorie;});
+  var data=(rapportViewMode==='year'?filterByYear(db.entries,rapportYear):rapportViewMode==='range'?filterByRange(db.entries,rapportRangeFrom,rapportRangeTo):filterByYearMonth(db.entries,rapportYear,rapportMonth)).filter(function(e){return !!e.categorie;});
   const el=document.getElementById('rapport-content');
   if(!data.length){el.innerHTML='<div class="empty">'+t('no_period')+'</div>';return;}
 
   const byAard={};
+  // Raw (expanded) entries behind each aard bucket - kept alongside byAard's
+  // running totals so km reimbursement can be computed per-year-per-aard via
+  // kmReimbursementForEntries() below instead of one flat rate times a
+  // multi-year km total (see kmOnlyVergoeding/kmVergoeding below).
+  const byAardEntries={};
   // Expanded so travel time (reisUren) buckets under its own "Reistijd" aard
   // instead of being folded into the activity's own aard — see
   // expandEntriesForReport's comment for why.
@@ -18259,6 +18304,8 @@ function _buildRapportInner(){
     byAard[aard].uren+=entryUren(e);
     byAard[aard].km+=(parseFloat(e.km)||0);
     byAard[aard].kosten+=(parseFloat(e.kosten)||0);
+    if(!byAardEntries[aard])byAardEntries[aard]=[];
+    byAardEntries[aard].push(e);
   });
   const totalUren=Object.values(byAard).reduce((t,v)=>t+v.uren,0);
   const critUren=Object.entries(byAard).filter(([,v])=>v.crit).reduce((t,[,v])=>t+v.uren,0);
@@ -18273,8 +18320,14 @@ function _buildRapportInner(){
   // Pure km-based reimbursement on its own (no other costs mixed in) - shown
   // as its own tile between "km driven" and "other costs" so the order reads
   // km -> what that's worth -> what else was declared, left to right.
-  const kmOnlyVergoeding=(totalKm*getKmRate(rapportYear)).toFixed(2).replace('.',',');
-  const kmVergoeding=(totalKm*getKmRate(rapportYear)+totalKosten).toFixed(2).replace('.',',');
+  // Uses kmReimbursementForEntries (buckets km by the YEAR of each entry's
+  // own date and applies THAT year's rate) instead of totalKm*getKmRate(one
+  // year) - correct even when `data` spans a km-rate change (e.g. a custom
+  // range straddling Jan 1, or any year boundary); a no-op for the normal
+  // single-year month/year view.
+  const totalKmVergoedingRaw=kmReimbursementForEntries(data);
+  const kmOnlyVergoeding=totalKmVergoedingRaw.toFixed(2).replace('.',',');
+  const kmVergoeding=(totalKmVergoedingRaw+totalKosten).toFixed(2).replace('.',',');
   // Per-category km/kosten breakdown for the Reiskosten summary card below.
   // Grouping by aard alone used to lump every travel category (Reizen -
   // Bijbelstudie/Evangelisatie/Pastoraal/Divisie-GC) into one "Reistijd" row,
@@ -18328,7 +18381,17 @@ function _buildRapportInner(){
   const sortedDays=Object.keys(byDay).sort();
 
   var jaarLabel=LANG==='en'?'Year overview':LANG==='es'?'Resumen anual':LANG==='fr'?'Aperçu annuel':LANG==='de'?'Jahresübersicht':LANG==='ro'?'Privire de ansamblu anuală':LANG==='hu'?'Éves áttekintés':LANG==='ru'?'Годовой обзор':'Jaaroverzicht';
-  var maand=rapportViewMode==='year'?(rapportYear+' – '+jaarLabel):(rapportMonth?formatMonthFull(rapportMonth):'Alle periodes');
+  var maand=rapportViewMode==='year'?(rapportYear+' – '+jaarLabel):rapportViewMode==='range'?(formatMonthFull(rapportRangeFrom)+' – '+formatMonthFull(rapportRangeTo)):(rapportMonth?formatMonthFull(rapportMonth):'Alle periodes');
+  // Vacation/leave stats (getVakantieStats/getRetentionStats) compute a
+  // fixed annual allotment that resets every Jan 1 - meaningless summed
+  // across more than one calendar year. Computed once here and reused by
+  // both the on-screen Vakantie & Verlof card and the print cover's own
+  // copy of the same section, so both stay consistent. _vakRangeMultiYear
+  // gates every "remaining/total" display down to a safe usage-only
+  // fallback instead of showing a number that's silently wrong.
+  var _vakRangeMultiYear=rapportViewMode==='range'&&(rapportRangeFrom||'').slice(0,4)!==(rapportRangeTo||'').slice(0,4);
+  var _vakStatsYear=rapportViewMode==='range'?(rapportRangeFrom||rapportYear).slice(0,4):rapportYear;
+  var _vakShared=_vakRangeMultiYear?getVakantieStatsForRange(rapportRangeFrom,rapportRangeTo):getVakantieStats(_vakStatsYear);
   if(_lastChartData){_lastChartData.maand=maand;_lastChartData.byAard=byAard;_lastChartData.totalUren=totalUren;}
   const s=db.settings;
   const pct=beschikbaar=>totalUren>0?Math.min(100,Math.round(critUren/beschikbaar*100)):0;
@@ -18356,7 +18419,7 @@ function _buildRapportInner(){
   // February reads 21/24 for Feb through June, then 5 more taken in July
   // drops it to 16/24 from July onward. Before anything has been taken
   // (e.g. January), it still shows the full allotment (24/24), not blank.
-  const _vakTileStats=getVakantieStats(rapportYear);
+  const _vakTileStats=_vakShared;
   var _vakMonthStats={vakDays:_vakTileStats.vakDays,vakUsedDays:0,vakRemDays:_vakTileStats.vakDays};
   if(rapportViewMode==='month'&&rapportMonth){
     var _vakUpToUren=filterByYear(db.entries,rapportYear).filter(function(e){return e.categorie==='Vakantie'&&(e.datum||'').slice(0,7)<=rapportMonth;}).reduce(function(t,e){return t+(parseFloat(e.uren)||0);},0);
@@ -18673,7 +18736,9 @@ function _buildRapportInner(){
       <div><div class="rp-glance-num">${currencySymbol()}${kmVergoeding}</div><div class="rp-glance-label">${t('vergoeding')}</div></div>
       ${rapportViewMode==='month'
         ? `<div style="cursor:pointer" onclick="toggleVakantieDetail(this,'${rapportYear}','vak-detail-rp-top','vak-chev-rp-top',null,'${rapportMonth}')"><div class="rp-glance-num">${_vakMonthStats.vakRemDays}/${_vakMonthStats.vakDays}</div><div class="rp-glance-label">${t('vacation_remaining')}</div></div>`
-        : `<div style="cursor:pointer" onclick="toggleVakantieDetail(this,'${rapportYear}','vak-detail-rp-top','vak-chev-rp-top')"><div class="rp-glance-num">${_vakTileStats.vakRemDays}/${_vakTileStats.vakDays}</div><div class="rp-glance-label">${t('vacation_remaining')}</div></div>`
+        : _vakRangeMultiYear
+          ? `<div><div class="rp-glance-num">—</div><div class="rp-glance-label">${t('vacation_remaining')}</div></div>`
+          : `<div style="cursor:pointer" onclick="toggleVakantieDetail(this,'${_vakStatsYear}','vak-detail-rp-top','vak-chev-rp-top')"><div class="rp-glance-num">${_vakTileStats.vakRemDays}/${_vakTileStats.vakDays}</div><div class="rp-glance-label">${t('vacation_remaining')}</div></div>`
       }
     </div>
     ${s.workRole!=='kantoor'?`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px 4px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
@@ -18785,40 +18850,61 @@ function _buildRapportInner(){
   <div class="dash-2col-wrap">
   <div>
   ${(()=>{
-      const _vak=getVakantieStats(rapportYear);
+      const _vak=_vakShared;
       const _addBtn=(cat)=>`<button onclick="event.stopPropagation();openAddVacationRangeModal('${cat}')" title="${t('save_btn')}" style="width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--brand);font-size:14px;line-height:1;cursor:pointer;padding:0">+</button>`;
       // Sick leave used to turn its row red once it had any days - reads as
       // an alarm/error, but taking sick leave isn't a problem to flag, so it
       // now stays the same neutral color as every other row here.
-      return `<div class="settings-section-title" style="margin-bottom:8px">${t('holiday')} ${rapportYear}</div>
+      var _vakHeaderPeriod=_vakRangeMultiYear?(rapportRangeFrom+' – '+rapportRangeTo):_vakStatsYear;
+      // Multi-year ranges: toggleVakantieDetail() only knows how to build a
+      // single year's (or year-to-date-through-one-month's) day list, so a
+      // per-day breakdown can't be shown against a total that already spans
+      // more than one year - the 4 rows fall back to non-interactive summary
+      // numbers (still correctly summed across the whole range) instead of
+      // a tap-to-expand list that would only ever show one of those years.
+      var _vakRowAttrs=function(detailId,chevId,cat,month){
+        if(_vakRangeMultiYear)return{onAttr:'',cursor:'default',chev:''};
+        var oc="toggleVakantieDetail(this.parentNode,'"+_vakStatsYear+"','"+detailId+"','"+chevId+"'"+(cat?(",'"+cat+"'"):'')+(month?(",'"+month+"'"):'')+")";
+        return{onAttr:' onclick="'+oc+'"',cursor:'pointer',chev:'<svg width="14" height="14" style="color:var(--text3);transition:transform .2s" id="'+chevId+'"><use href="#ico-chevron-right"/></svg>'};
+      };
+      var _vakA=_vakRowAttrs('vak-detail-rp','vak-chev-rp');
+      var _verlofA=_vakRowAttrs('verlof-detail-rp','verlof-chev-rp','Verlof');
+      var _ziekA=_vakRowAttrs('ziek-detail-rp','ziek-chev-rp','Ziekteverzuim');
+      var _feestA=_vakRowAttrs('feest-detail-rp','feest-chev-rp','Feestdag (NL)');
+      var _vakNumBlock=_vakRangeMultiYear
+        ? `<strong style="font-size:13px">${_vak.vakUsedDays} ${t('days_lbl')||''}</strong>`
+        : `<strong style="font-size:13px">${_vak.vakRemDays} / ${_vak.vakDays} ${t('days_lbl')||''}</strong>`;
+      var _vakMultiYearNote=tMap({nl:'Resterende dagen worden niet getoond over meerdere jaren — gebruik Jaar of een periode binnen één jaar daarvoor.',en:'Days remaining isn’t shown across multiple years — use Year, or a range within one year, for that.',es:'Los días restantes no se muestran en varios años — usa Año, o un rango dentro de un año, para eso.',fr:'Les jours restants ne s’affichent pas sur plusieurs années — utilisez Année, ou une période dans une seule année.',de:'Resttage werden nicht über mehrere Jahre hinweg angezeigt — verwenden Sie dafür Jahr oder einen Zeitraum innerhalb eines Jahres.',ro:'Zilele rămase nu sunt afișate pe mai mulți ani — folosește Anul sau un interval dintr-un singur an.',hu:'A hátralévő napok nem jelennek meg több évre összesítve — használd az Év nézetet, vagy egy egy éven belüli időszakot.',ru:'Оставшиеся дни не показываются за несколько лет — используйте вид «Год» или период в пределах одного года.',it:'I giorni rimanenti non vengono mostrati su più anni — usa Anno, o un intervallo entro un anno, per quello.',pt:'Os dias restantes não são mostrados em vários anos — use Ano, ou um período dentro de um ano, para isso.'});
+      return `<div class="settings-section-title" style="margin-bottom:8px">${t('holiday')} ${_vakHeaderPeriod}</div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
-          <span style="font-size:13px;color:var(--text2);cursor:pointer;flex:1" onclick="toggleVakantieDetail(this.parentNode,'${rapportYear}','vak-detail-rp','vak-chev-rp')">${getCatLabel('Vakantie')}</span>
-          <div style="display:flex;align-items:center;gap:6px;cursor:pointer" onclick="toggleVakantieDetail(this.parentNode,'${rapportYear}','vak-detail-rp','vak-chev-rp')">
-            <strong style="font-size:13px">${_vak.vakRemDays} / ${_vak.vakDays} ${t('days_lbl')||''}</strong>
-            <svg width="14" height="14" style="color:var(--text3);transition:transform .2s" id="vak-chev-rp"><use href="#ico-chevron-right"/></svg>
+          <span style="font-size:13px;color:var(--text2);cursor:${_vakA.cursor};flex:1"${_vakA.onAttr}>${getCatLabel('Vakantie')}</span>
+          <div style="display:flex;align-items:center;gap:6px;cursor:${_vakA.cursor}"${_vakA.onAttr}>
+            ${_vakNumBlock}
+            ${_vakA.chev}
           </div>
           ${_addBtn('Vakantie')}
         </div>
         <div id="vak-detail-rp" style="display:none;margin:0 0 4px"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0;color:var(--text2)">
-          <span style="cursor:pointer;flex:1" onclick="toggleVakantieDetail(this.parentNode,'${rapportYear}','verlof-detail-rp','verlof-chev-rp','Verlof')">${getCatLabel('Verlof')}</span>
-          <div style="display:flex;align-items:center;gap:6px;cursor:pointer" onclick="toggleVakantieDetail(this.parentNode,'${rapportYear}','verlof-detail-rp','verlof-chev-rp','Verlof')"><strong>${_vak.verlofDays} ${t('days_lbl')||''}</strong><svg width="14" height="14" style="color:var(--text3);transition:transform .2s" id="verlof-chev-rp"><use href="#ico-chevron-right"/></svg></div>
+          <span style="cursor:${_verlofA.cursor};flex:1"${_verlofA.onAttr}>${getCatLabel('Verlof')}</span>
+          <div style="display:flex;align-items:center;gap:6px;cursor:${_verlofA.cursor}"${_verlofA.onAttr}><strong>${_vak.verlofDays} ${t('days_lbl')||''}</strong>${_verlofA.chev}</div>
           ${_addBtn('Verlof')}
         </div>
         <div id="verlof-detail-rp" style="display:none;margin:0 0 4px"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0;color:var(--text2)">
-          <span style="cursor:pointer;flex:1" onclick="toggleVakantieDetail(this.parentNode,'${rapportYear}','ziek-detail-rp','ziek-chev-rp','Ziekteverzuim')">${t('sick_leave')}</span>
-          <div style="display:flex;align-items:center;gap:6px;cursor:pointer" onclick="toggleVakantieDetail(this.parentNode,'${rapportYear}','ziek-detail-rp','ziek-chev-rp','Ziekteverzuim')"><strong>${_vak.ziekDays} ${t('days_lbl')||''}</strong><svg width="14" height="14" style="color:var(--text3);transition:transform .2s" id="ziek-chev-rp"><use href="#ico-chevron-right"/></svg></div>
+          <span style="cursor:${_ziekA.cursor};flex:1"${_ziekA.onAttr}>${t('sick_leave')}</span>
+          <div style="display:flex;align-items:center;gap:6px;cursor:${_ziekA.cursor}"${_ziekA.onAttr}><strong>${_vak.ziekDays} ${t('days_lbl')||''}</strong>${_ziekA.chev}</div>
           ${_addBtn('Ziekteverzuim')}
         </div>
         <div id="ziek-detail-rp" style="display:none;margin:0 0 4px"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0;color:var(--text2)">
-          <span style="cursor:pointer;flex:1" onclick="toggleVakantieDetail(this.parentNode,'${rapportYear}','feest-detail-rp','feest-chev-rp','Feestdag (NL)')">${getCatLabel('Feestdag (NL)')}</span>
-          <div style="display:flex;align-items:center;gap:6px;cursor:pointer" onclick="toggleVakantieDetail(this.parentNode,'${rapportYear}','feest-detail-rp','feest-chev-rp','Feestdag (NL)')"><strong>${_vak.feestdagDays} ${t('days_lbl')||''}</strong><svg width="14" height="14" style="color:var(--text3);transition:transform .2s" id="feest-chev-rp"><use href="#ico-chevron-right"/></svg></div>
+          <span style="cursor:${_feestA.cursor};flex:1"${_feestA.onAttr}>${getCatLabel('Feestdag (NL)')}</span>
+          <div style="display:flex;align-items:center;gap:6px;cursor:${_feestA.cursor}"${_feestA.onAttr}><strong>${_vak.feestdagDays} ${t('days_lbl')||''}</strong>${_feestA.chev}</div>
           ${_addBtn('Feestdag (NL)')}
         </div>
         <div id="feest-detail-rp" style="display:none;margin:0 0 4px"></div>
+        ${_vakRangeMultiYear?`<div style="font-size:11px;color:var(--text3);padding:6px 2px 0">${_vakMultiYearNote}</div>`:''}
       </div>`;
     })()}
   </div>
@@ -18833,7 +18919,7 @@ function _buildRapportInner(){
       </div>
       ${Object.entries(byCatKm).sort((a,b)=>b[1].km-a[1].km).map(([cat,v],rpKmIdx)=>{
         const parts=[];
-        if(v.km>0)parts.push(`<strong>${Math.round(v.km)}${distUnit()}</strong> &middot; ${currencySymbol()}${(v.km*getKmRate(rapportYear)).toFixed(2).replace('.',',')}`);
+        if(v.km>0)parts.push(`<strong>${Math.round(v.km)}${distUnit()}</strong> &middot; ${currencySymbol()}${kmReimbursementForEntries(byCatKmEntries[cat]||[]).toFixed(2).replace('.',',')}`);
         if(v.kosten>0)parts.push(`${currencySymbol()}${v.kosten.toFixed(2).replace('.',',')}`);
         // Each category line expands into the individual dated entries behind
         // it - same tap-to-expand-then-tap-to-jump-into-Dagoverzicht pattern as
@@ -18920,7 +19006,7 @@ function _buildRapportInner(){
       // excluded from both buckets - they're not work time, and they
       // already get their own breakdown just below, so counting them here
       // too would double-count days off as "Homeoffice".
-      const _hwEntries=rapportViewMode==='year'?filterByYear(db.entries,rapportYear):filterByYearMonth(db.entries,rapportYear,rapportMonth);
+      const _hwEntries=rapportViewMode==='year'?filterByYear(db.entries,rapportYear):rapportViewMode==='range'?filterByRange(db.entries,rapportRangeFrom,rapportRangeTo):filterByYearMonth(db.entries,rapportYear,rapportMonth);
       let _homeUren=0,_veldUren=0;
       _hwEntries.forEach(e=>{
         const c=findCatByLabel(e.categorie);
@@ -18935,7 +19021,7 @@ function _buildRapportInner(){
       // Follows the same month/year toggle as the glance-stats row above -
       // spelling out the exact period (month name, or just the year) removes
       // any ambiguity about what 's being summarized here.
-      const _hwPeriodLbl=rapportViewMode==='year'?rapportYear:formatMonthFull(rapportMonth);
+      const _hwPeriodLbl=rapportViewMode==='year'?rapportYear:rapportViewMode==='range'?(formatMonthFull(rapportRangeFrom)+' – '+formatMonthFull(rapportRangeTo)):formatMonthFull(rapportMonth);
       return `<div class="settings-section-title" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">
         <span>${t('hw_summary_title')} ${_hwPeriodLbl}</span>
         <span onclick="var e=document.getElementById('hw-explain');e.style.display=e.style.display==='none'?'block':'none';" style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;text-transform:none;letter-spacing:normal;color:var(--text3);cursor:pointer;flex-shrink:0">
@@ -19056,7 +19142,7 @@ function _buildRapportInner(){
   // Vacation/leave stats for the print cover - same data source as the
   // on-screen Resumen card, so the exported PDF matches what's shown in-app
   // instead of omitting this section entirely.
-  const _vak=getVakantieStats(rapportYear);
+  const _vak=_vakShared;
   const today=new Date().toLocaleDateString(getLocale(),{day:'numeric',month:'long',year:'numeric'});
   const cursistCount=Object.keys(byCursist).length;
   const hasBibleStudies=cursistCount>0;
@@ -19104,8 +19190,8 @@ function _buildRapportInner(){
     <div class="rp-prog-row"><div class="rp-prog-meta"><span>% ${LANG==='en'?'of total hours':LANG==='es'?'del total de horas':LANG==='fr'?'des heures totales':LANG==='de'?'der Gesamtstunden':LANG==='ro'?'din total ore':LANG==='hu'?'az összes óra':LANG==='ru'?'от общего времени':'van totaal uren'}</span><strong>${totalUren>0?Math.round(critUren/totalUren*100):0}%</strong></div><div class="rp-prog-track"><div class="rp-prog-fill" style="width:${totalUren>0?Math.round(critUren/totalUren*100):0}%;background:#1D4ED8"></div></div></div>
   </div>
   <div class="rp-vak-section rp-sec-absence">
-    <div class="rp-sh">${t('holiday')} ${rapportYear}</div>
-    <div class="rp-cat-item"><div class="rp-cname">${getCatLabel('Vakantie')}</div><div class="rp-chours">${_vak.vakRemDays} / ${_vak.vakDays} ${t('days_lbl')||''}</div></div>
+    <div class="rp-sh">${t('holiday')} ${_vakRangeMultiYear?(rapportRangeFrom+' – '+rapportRangeTo):_vakStatsYear}</div>
+    <div class="rp-cat-item"><div class="rp-cname">${getCatLabel('Vakantie')}</div><div class="rp-chours">${_vakRangeMultiYear?(_vak.vakUsedDays+' '+(t('days_lbl')||'')):(_vak.vakRemDays+' / '+_vak.vakDays+' '+(t('days_lbl')||''))}</div></div>
     ${_vak.verlofDays>0?`<div class="rp-cat-item"><div class="rp-cname">${getCatLabel('Verlof')}</div><div class="rp-chours">${_vak.verlofDays} ${t('days_lbl')||''}</div></div>`:''}
     ${_vak.ziekDays>0?`<div class="rp-cat-item"><div class="rp-cname">${t('sick_leave')}</div><div class="rp-chours">${_vak.ziekDays} ${t('days_lbl')||''}</div></div>`:''}
     ${_vak.feestdagDays>0?`<div class="rp-cat-item"><div class="rp-cname">${getCatLabel('Feestdag (NL)')}</div><div class="rp-chours">${_vak.feestdagDays} ${t('days_lbl')||''}</div></div>`:''}
@@ -19120,9 +19206,9 @@ function _buildRapportInner(){
   <div class="rp-km-section rp-sec-km">
     <div class="rp-km-headline">
       <div class="rp-sh" style="margin:0">${LANG==='en'?'Kilometers — treasurer':LANG==='es'?'Kilómetros — tesorero':LANG==='fr'?'Kilomètres — trésorier':LANG==='de'?'Kilometer — Kassierer':LANG==='ro'?'Kilometri — trezorier':LANG==='hu'?'Kilométer — pénztáros':LANG==='ru'?'Километры — казначей':LANG==='it'?'Chilometri — tesoriere':LANG==='pt'?'Quilómetros — tesoureiro':'Kilometers — penningmeester'}</div>
-      <div class="rp-km-total">${Math.round(totalKm)} ${t('km_label')} &middot; ${currencySymbol()}${(totalKm*getKmRate(rapportYear)).toFixed(2).replace('.',',')}</div>
+      <div class="rp-km-total">${Math.round(totalKm)} ${t('km_label')} &middot; ${currencySymbol()}${kmOnlyVergoeding}</div>
     </div>
-    ${Object.entries(byAard).filter(([,v])=>v.km>0).map(([aard,v])=>`<div class="rp-km-row"><div class="rp-km-label">${getAardLabel(aard)}</div><div class="rp-km-val">${v.km}${distUnit()} &middot; ${currencySymbol()}${(v.km*getKmRate(rapportYear)).toFixed(2).replace('.',',')}</div></div>`).join('')}
+    ${Object.entries(byAard).filter(([,v])=>v.km>0).map(([aard,v])=>`<div class="rp-km-row"><div class="rp-km-label">${getAardLabel(aard)}</div><div class="rp-km-val">${v.km}${distUnit()} &middot; ${currencySymbol()}${kmReimbursementForEntries(byAardEntries[aard]||[]).toFixed(2).replace('.',',')}</div></div>`).join('')}
     ${!Object.entries(byAard).some(([,v])=>v.km>0)?`<div style="font-size:7pt;color:#B45309">${LANG==='en'?'No kilometers':LANG==='es'?'Sin kilómetros':LANG==='fr'?'Pas de kilomètres':LANG==='de'?'Keine Kilometer':LANG==='ru'?'Нет километров':'Geen kilometers'}</div>`:''}
   </div>
   <div class="rp-km-section rp-sec-kosten">
@@ -19134,7 +19220,7 @@ function _buildRapportInner(){
     ${!Object.entries(byAard).some(([,v])=>v.kosten>0)?`<div style="font-size:7pt;color:#B45309">${LANG==='en'?'No expenses':LANG==='es'?'Sin gastos':LANG==='fr'?'Pas de frais':LANG==='de'?'Keine Ausgaben':LANG==='ru'?'Нет расходов':LANG==='it'?'Nessuna spesa':LANG==='pt'?'Sem despesas':'Geen onkosten'}</div>`:''}
     <div class="rp-km-row rp-sec-km rp-sec-kosten" style="border-top:.5pt solid #ddd;margin-top:3pt;padding-top:3pt;font-weight:700">
       <div class="rp-km-label">${LANG==='en'?'Total — kilometers + expenses':LANG==='es'?'Total — kilómetros + gastos':LANG==='fr'?'Total — kilomètres + frais':LANG==='de'?'Gesamt — Kilometer + Ausgaben':LANG==='ro'?'Total — kilometri + cheltuieli':LANG==='hu'?'Összesen — kilométer + költségek':LANG==='ru'?'Итого — километры + расходы':LANG==='it'?'Totale — chilometri + spese':LANG==='pt'?'Total — quilómetros + despesas':'Totaal — kilometers + onkosten'}</div>
-      <div class="rp-km-val">${currencySymbol()}${(totalKm*getKmRate(rapportYear)+totalKosten).toFixed(2).replace('.',',')}</div>
+      <div class="rp-km-val">${currencySymbol()}${kmVergoeding}</div>
     </div>
   </div>
   <div class="rp-page-footer"><span>${s.gemeente||'ZDAreformatie'} &middot; ${s.naam||''}</span><span>${maand}</span></div>
@@ -19212,7 +19298,12 @@ ${(function(){
   plannedBlocks=plannedBlocks.slice(0,20);
   var prayerItems=(db.prayers||[]).filter(function(p){return p.category==='work';});
   var doopItems=(db.cursisten||[]).filter(function(cu){return !!cu.doopkandidaat;});
-  var retStats=getRetentionStats(rapportYear,null);
+  // getRetentionStats() takes a single-year param ("first study this
+  // year") - for a custom range use the range's own start year (exact for a
+  // single-year range; an approximation for one spanning several years,
+  // where the PDF's secondary Contactenoverzicht page is a less critical
+  // section than the totals above it).
+  var retStats=getRetentionStats(_vakStatsYear,null);
   var newBsCount=(retStats&&retStats.newStudents)?retStats.newStudents.length:0;
   var totalMembers=(db.cursisten||[]).filter(function(cu){return cu.type==='lid';}).length;
   var totalInterested=(db.cursisten||[]).filter(function(cu){var tags=(cu.personTypes&&cu.personTypes.length)?cu.personTypes:[cu.personType||'contact'];return tags.indexOf('interested')>=0;}).length;
@@ -19803,6 +19894,20 @@ function filterByYearMonth(entries,year,month){
   });
 }
 
+// Rapport custom date range (rapportViewMode==='range') - `from`/`to` are
+// 'YYYY-MM' strings, inclusive on both ends. String comparison is safe here
+// since both the entry's 'YYYY-MM' slice and from/to share that exact
+// format, where lexicographic order matches chronological order.
+function filterByRange(entries,from,to){
+  if(!from&&!to)return entries;
+  return entries.filter(function(e){
+    var d=(e.datum||'').slice(0,7);
+    if(from&&d<from)return false;
+    if(to&&d>to)return false;
+    return true;
+  });
+}
+
 function populateYearSelect(selId, currentYear, onchangeFn){
   var sel=document.getElementById(selId);
   if(!sel)return;
@@ -19842,6 +19947,25 @@ function getVakantieStats(year){
          verlofDays:verlofDays,verlofGebruikt:verlofGebruikt,
          ziekDays:ziekDays,ziekGebruikt:ziekGebruikt,
          feestdagDays:feestdagDays,feestdagGebruikt:feestdagGebruikt};
+}
+
+// Vacation/leave stats across a custom multi-month(/multi-year) Rapport
+// range. getVakantieStats(year) above computes "days remaining" against a
+// fixed annual allotment that resets every Jan 1 - that concept doesn't
+// generalize across a range spanning more than one calendar year, so this
+// deliberately leaves vakDays/vakRemDays out (null) rather than fabricate a
+// number against the wrong allotment. The raw usage counts (days actually
+// taken) ARE meaningful summed across years, so those are still returned.
+function getVakantieStatsForRange(from,to){
+  var rangeEntries=filterByRange(db.entries,from,to);
+  var vakGebruikt=rangeEntries.filter(function(e){return e.categorie==='Vakantie';}).reduce(function(t,e){return t+(parseFloat(e.uren)||0);},0);
+  var verlofGebruikt=rangeEntries.filter(function(e){return e.categorie==='Verlof';}).reduce(function(t,e){return t+(parseFloat(e.uren)||0);},0);
+  var ziekGebruikt=rangeEntries.filter(function(e){return e.categorie==='Ziekteverzuim';}).reduce(function(t,e){return t+(parseFloat(e.uren)||0);},0);
+  var feestdagGebruikt=rangeEntries.filter(function(e){return e.categorie==='Feestdag (NL)';}).reduce(function(t,e){return t+(parseFloat(e.uren)||0);},0);
+  return{vakDays:null,vakUsedDays:Math.round(vakGebruikt/8),vakRemDays:null,vakGebruikt:vakGebruikt,
+         verlofDays:Math.round(verlofGebruikt/8),verlofGebruikt:verlofGebruikt,
+         ziekDays:Math.round(ziekGebruikt/8),ziekGebruikt:ziekGebruikt,
+         feestdagDays:Math.round(feestdagGebruikt/8),feestdagGebruikt:feestdagGebruikt};
 }
 
 // AUTOFILL SUGGESTION ENGINE
@@ -20224,7 +20348,15 @@ function drawRapportChartJs(byAard,totalUren,maand,allData){
       }).join('');
     }).catch(function(){drawFallbackDonut(area,byAard,totalUren,maand);});
   } else if(tab==='bar'||tab==='line'){
-    var yearEntries=_lastChartData?filterByYear(_lastChartData.data||db.entries,rapportYear):db.entries;
+    // _lastChartData.data is already scoped to whatever the Rapport screen
+    // is currently showing (month/year/range - see _buildRapportInner's
+    // `data`), so range mode uses it as-is: re-filtering it by rapportYear
+    // here would be wrong (rapportYear may be a stale leftover from before
+    // switching to range, silently chopping a multi-year range down to just
+    // that one year). Month/year mode still re-filters by rapportYear,
+    // unchanged from before - harmless there since that data is already
+    // within that same year.
+    var yearEntries=_lastChartData?(rapportViewMode==='range'?(_lastChartData.data||db.entries):filterByYear(_lastChartData.data||db.entries,rapportYear)):db.entries;
     // Expanded so travel time buckets under its own "Reistijd" aard/month
     // instead of inflating whatever aard the parent activity belongs to.
     var yearEntriesExp=expandEntriesForReport(yearEntries);
@@ -21392,17 +21524,25 @@ function exportForPresident(prefs){
   // older code path.
   prefs=prefs||getPdfExportPrefs();
   var workerName=(db.settings&&db.settings.naam)||'Worker';
-  // Scope to whichever year the Rapport screen is currently showing - this
-  // is a year-only export (pdfExportPeriodForCurrentView already routes
-  // month-scoped exports to exportApprovalRequest instead), so everything
-  // below that reads from db.entries/db.vacationDays must be filtered to
-  // this year. Used to export the entire multi-year history unfiltered
-  // regardless of which year was on screen, and stamped the download
-  // filename with today's calendar year instead - so exporting an old year
-  // (e.g. 2025) silently produced a file full of every year's data, named
-  // for the current year instead.
-  var exportYear=String(rapportYear||new Date().getFullYear());
-  var yearEntries=(db.entries||[]).filter(function(e){return (e.datum||'').startsWith(exportYear);});
+  // Scope to whichever period the Rapport screen is currently showing - this
+  // export only runs for 'year' or 'range' (pdfExportPeriodForCurrentView
+  // already routes month-scoped exports to exportApprovalRequest instead),
+  // so everything below that reads from db.entries/db.vacationDays must be
+  // filtered to that period. Used to export the entire multi-year history
+  // unfiltered regardless of which year was on screen, and stamped the
+  // download filename with today's calendar year instead - so exporting an
+  // old year (e.g. 2025) silently produced a file full of every year's
+  // data, named for the current year instead.
+  var isRangeExport=rapportViewMode==='range';
+  // The JSON schema's _year field expects a single calendar year - a range
+  // export uses its start year there (best-effort metadata for the
+  // President app), while the actual entry/vacation filtering below and the
+  // download filename both use the full range.
+  var exportYear=isRangeExport?String((rapportRangeFrom||'').slice(0,4)||new Date().getFullYear()):String(rapportYear||new Date().getFullYear());
+  var exportPeriodLbl=isRangeExport?((rapportRangeFrom||'')+'_to_'+(rapportRangeTo||'')):exportYear;
+  var yearEntries=isRangeExport
+    ?filterByRange(db.entries||[],rapportRangeFrom,rapportRangeTo)
+    :(db.entries||[]).filter(function(e){return (e.datum||'').startsWith(exportYear);});
   // Privacy default: anonymous stats + minimal contact info (GDPR). The
   // contact-phone/contact-address toggles are an explicit opt-in to include
   // real names + reachable info (e.g. for a secretary's database) - without
@@ -21504,7 +21644,13 @@ function exportForPresident(prefs){
   // once. Scoped to exportYear too, so re-exporting an older year doesn't
   // also re-send (and, on the President-app side, overwrite) every other
   // year's vacation days.
-  var exportVacationDays=prefs.absence===false?[]:(db.vacationDays||[]).filter(function(d){return (d||'').startsWith(exportYear);});
+  var exportVacationDays=prefs.absence===false?[]:(db.vacationDays||[]).filter(function(d){
+    if(isRangeExport){
+      var dm=(d||'').slice(0,7);
+      return(!rapportRangeFrom||dm>=rapportRangeFrom)&&(!rapportRangeTo||dm<=rapportRangeTo);
+    }
+    return(d||'').startsWith(exportYear);
+  });
 
   // "Geplande afwezigheid" checkbox - upcoming absences that aren't plain
   // vacation days (GC, foreign mission, training, etc.), same source data
@@ -21587,7 +21733,7 @@ function exportForPresident(prefs){
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   var safeName=workerName.replace(/[^a-z0-9]/gi,'_');
-  a.download='ZDA_'+safeName+'_'+exportYear+'.json';
+  a.download='ZDA_'+safeName+'_'+exportPeriodLbl+'.json';
   a.click();
 }
 
@@ -21596,12 +21742,17 @@ function exportCSV(prefs){
   // filterExportEntry) so choosing "no km" or "no personal notes" once
   // applies consistently everywhere you export from.
   prefs=prefs||getPdfExportPrefs();
-  // Scope to the currently-viewed month, or else the currently-viewed
-  // year - this used to fall through to ALL entries (every year) whenever
-  // rapportMonth was empty (i.e. whenever the Rapport screen was showing a
-  // whole year rather than one month), so exporting "2025" as CSV silently
-  // included every other year's rows too.
-  const rawData=rapportMonth?db.entries.filter(e=>(e.datum||'').startsWith(rapportMonth)):(rapportYear?db.entries.filter(e=>(e.datum||'').startsWith(String(rapportYear))):db.entries);
+  // Scope to the currently-viewed month, custom range, or else the
+  // currently-viewed year - this used to fall through to ALL entries (every
+  // year) whenever rapportMonth was empty (i.e. whenever the Rapport screen
+  // was showing a whole year rather than one month), so exporting "2025" as
+  // CSV silently included every other year's rows too. Branches on
+  // rapportViewMode itself (not just rapportMonth's truthiness) so a stale
+  // rapportMonth left over from an earlier month view doesn't wrongly
+  // narrow a year or range export down to just that one old month.
+  const rawData=rapportViewMode==='range'?filterByRange(db.entries,rapportRangeFrom,rapportRangeTo)
+    :(rapportViewMode==='month'&&rapportMonth)?db.entries.filter(e=>(e.datum||'').startsWith(rapportMonth))
+    :(rapportYear?db.entries.filter(e=>(e.datum||'').startsWith(String(rapportYear))):db.entries);
   const data=prefs.timeline===false?[]:rawData.map(e=>filterExportEntry(e,prefs));
   const includeContact=!!(prefs.contactPhone||prefs.contactAddress);
   const headers=['Datum','Maand','Categorie','Aard','Urencriterium','Omschrijving','Uren','Reisuren','Km','Kosten','Cursist','Themacode','Thema','Opmerkingen','Reminder'];
@@ -21618,7 +21769,8 @@ function exportCSV(prefs){
     return vals.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',');
   });
   const csv=[headers.join(','),...rows].join('\n');
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download=`ZDAreformatie_${rapportMonth||'alle'}_uren.csv`;a.click();
+  const csvPeriodLbl=rapportViewMode==='range'?`${rapportRangeFrom||''}_to_${rapportRangeTo||''}`:(rapportViewMode==='month'&&rapportMonth)?rapportMonth:(rapportYear||'alle');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download=`ZDAreformatie_${csvPeriodLbl}_uren.csv`;a.click();
 }
 
 // DUPLICATE ENTRY CLEANUP
@@ -24257,7 +24409,9 @@ function savePdfExportPrefs(p){
 // you're looking at a single month, that month gets sent; if you're looking
 // at the whole year, the whole year gets sent. See confirmPdfExport.
 function pdfExportPeriodForCurrentView(){
-  return (rapportViewMode==='month'&&rapportMonth)?'month':'year';
+  if(rapportViewMode==='month'&&rapportMonth)return'month';
+  if(rapportViewMode==='range')return'range';
+  return'year';
 }
 function openPdfExportOptions(mode){
   mode=mode||'print';
@@ -24300,7 +24454,7 @@ function openPdfExportOptions(mode){
   // glance what period is about to go out.
   var periodFieldLbl=tMap({nl:'Periode',en:'Period',es:'Período',fr:'Période',de:'Zeitraum',ro:'Perioadă',hu:'Időszak',ru:'Период',it:'Periodo',pt:'Período'});
   var curPeriod=pdfExportPeriodForCurrentView();
-  var periodValue=curPeriod==='month'?formatMonthFull(rapportMonth):rapportYear;
+  var periodValue=curPeriod==='month'?formatMonthFull(rapportMonth):curPeriod==='range'?(formatMonthFull(rapportRangeFrom)+' – '+formatMonthFull(rapportRangeTo)):rapportYear;
   h+='<div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--border)">'
     +'<span style="font-size:13px;color:var(--text2)">'+periodFieldLbl+'</span>'
     +'<strong style="font-size:14px">'+periodValue+'</strong>'
@@ -24350,6 +24504,8 @@ function buildPdfExportTitle(){
   var periodLbl;
   if(rapportViewMode==='year'){
     periodLbl=rapportYear||String(new Date().getFullYear());
+  } else if(rapportViewMode==='range'){
+    periodLbl=(rapportRangeFrom||'')+'_to_'+(rapportRangeTo||'');
   } else {
     var parts=(rapportMonth||'').split('-');
     var mIdx=parts.length>1?(parseInt(parts[1],10)-1):new Date().getMonth();
@@ -24390,11 +24546,15 @@ function confirmPdfExport(mode){
     closeModals();
     // Merged president export: "month" goes through the existing
     // request/approve/reject loop (exportApprovalRequest already has its
-    // own month-selected safety check), "year" is just a one-time data
-    // handoff to seed the president's own app - no approval tracking.
-    // Which one happens follows the Rapport screen's current view, not a
-    // manual toggle (see pdfExportPeriodForCurrentView).
-    if(pdfExportPeriodForCurrentView()==='year')exportForPresident(prefs);
+    // own month-selected safety check), "year" (and, the same way, a
+    // custom "range") is just a one-time data handoff to seed the
+    // president's own app - no approval tracking. Which one happens
+    // follows the Rapport screen's current view, not a manual toggle (see
+    // pdfExportPeriodForCurrentView). exportApprovalRequest itself is
+    // intentionally left month-only - it stays the "else" fallback here,
+    // so anything that isn't 'month' (year or range) goes to
+    // exportForPresident instead.
+    if(pdfExportPeriodForCurrentView()!=='month')exportForPresident(prefs);
     else exportApprovalRequest(prefs);
     return;
   }
@@ -24677,6 +24837,51 @@ function saveVacationRange(){
   save();
   closeModals();
   renderRapport();
+}
+
+// Rapport custom date-range mode ("Aangepast") - a third view alongside
+// month/year that lets someone see aggregated report data across an
+// arbitrary span of months (e.g. "May 2024 - May 2026"), not just one month
+// or one calendar year. Month-granularity ('YYYY-MM'), not day-level, since
+// every Rapport filter (filterByRange, the KM-rate bucketing, etc.) already
+// works in whole months, matching rapportMonth's own format.
+function rapportRangeLbl(){
+  return tMap({nl:'Aangepast',en:'Custom',es:'Personalizado',fr:'Personnalisé',de:'Benutzerdefiniert',ro:'Personalizat',hu:'Egyéni',ru:'Свой период',it:'Personalizzato',pt:'Personalizado'});
+}
+function openRapportRangeModal(){
+  var title=tMap({nl:'Aangepaste periode',en:'Custom period',es:'Período personalizado',fr:'Période personnalisée',de:'Benutzerdefinierter Zeitraum',ro:'Perioadă personalizată',hu:'Egyéni időszak',ru:'Свой период',it:'Periodo personalizzato',pt:'Período personalizado'});
+  var fromLbl=tMap({nl:'Van',en:'From',es:'Desde',fr:'Du',de:'Von',ro:'De la',hu:'Ettől',ru:'С',it:'Da',pt:'De'});
+  var toLbl=tMap({nl:'Tot en met',en:'Through',es:'Hasta',fr:'Au',de:'Bis',ro:'Până la',hu:'Eddig',ru:'По',it:'A',pt:'Até'});
+  var nowYm=ymdLocal().slice(0,7);
+  // Default "from" to whatever month was last viewed (if any), else the
+  // current month; default "to" to the current month - a sensible starting
+  // point the user can then widen in either direction.
+  var fromDefault=rapportRangeFrom||rapportMonth||nowYm;
+  var toDefault=rapportRangeTo||nowYm;
+  var h='<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>';
+  h+='<div style="font-size:15px;font-weight:700;margin-bottom:14px;text-align:center">'+title+'</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:12px">';
+  h+='<div><label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">'+fromLbl+'</label><input type="month" id="rapport-range-from" value="'+fromDefault+'" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;box-sizing:border-box"></div>';
+  h+='<div><label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">'+toLbl+'</label><input type="month" id="rapport-range-to" value="'+toDefault+'" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;box-sizing:border-box"></div>';
+  h+='</div>';
+  h+='<div style="display:flex;gap:8px;margin-top:16px">';
+  h+='<button class="btn" onclick="closeModals()" style="flex:1">'+t('cancel_btn')+'</button>';
+  h+='<button class="btn primary" onclick="saveRapportRange()" style="flex:1">'+t('save_btn')+'</button>';
+  h+='</div>';
+  showModal(h);
+}
+function saveRapportRange(){
+  var fromEl=document.getElementById('rapport-range-from');
+  var toEl=document.getElementById('rapport-range-to');
+  if(!fromEl||!toEl||!fromEl.value||!toEl.value)return;
+  var from=fromEl.value,to=toEl.value;
+  if(to<from){var tmp=from;from=to;to=tmp;}
+  rapportRangeFrom=from;
+  rapportRangeTo=to;
+  rapportViewMode='range';
+  closeModals();
+  renderRapport();
+  renderSubbar('rapport');
 }
 
 function onPlanMultiDayChange(){
