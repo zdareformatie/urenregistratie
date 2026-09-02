@@ -25268,6 +25268,10 @@ function agendaQuickConfirm(planId){
   var newEntry = {
     id: Date.now(),
     datum: p.datum,
+    // db.planned uses `time`, db.entries uses `tijd` - this was missing
+    // entirely here, so one-tap-confirming a planned activity always
+    // dropped its scheduled time even though the plan itself had one.
+    tijd: p.time||'',
     categorie: p.categorie,
     aard: (getCATEGORIES().find(function(c){return c.label===p.categorie;})||{}).aard||'',
     omschrijving: p.omschrijving||'',
