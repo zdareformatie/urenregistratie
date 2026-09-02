@@ -15636,9 +15636,12 @@ function saveQuickLogContact(cuId){
   // which means the spreadsheet's Omschrijving column and other
   // omschrijving-based views show nothing for these rows unless a note was
   // typed. Give both methods a sensible, contact-named default description
-  // so they're never blank there, without overriding an actually-typed
-  // opmerking.
-  if(categorie==='Tel./WhatsApp contact'&&!newEntry.opmerking){
+  // so they're never blank there. Gated on omschrijving itself being empty
+  // (not on opmerking/notes) - typing a note in the Opmerkingen box is a
+  // separate action from the description and shouldn't suppress this
+  // default; the two used to be conflated here, which is exactly why a note
+  // like "Follow up bericht" was silently leaving Omschrijving blank.
+  if(categorie==='Tel./WhatsApp contact'&&!newEntry.omschrijving){
     if(newEntry.contactMethod==='whatsapp'){
       newEntry.omschrijving=(LANG==='en'?'Message sent to ':LANG==='es'?'Mensaje enviado a ':LANG==='fr'?'Message envoyé à ':LANG==='de'?'Nachricht gesendet an ':LANG==='ro'?'Mesaj trimis către ':LANG==='hu'?'Üzenet küldve: ':LANG==='ru'?'Сообщение отправлено: ':LANG==='it'?'Messaggio inviato a ':LANG==='pt'?'Mensagem enviada a ':'Bericht sturen aan ')+cu.naam;
     }else{
