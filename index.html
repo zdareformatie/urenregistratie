@@ -124,7 +124,16 @@ html.dark .dm-amber-accent{color:var(--amber)!important}
    thumbnails, etc.) - those use their own overflow-x:auto and keep
    working exactly as before, since this only constrains the outer
    html/body scroll container, not descendants' own scroll contexts. */
-html,body{overflow-x:hidden;overscroll-behavior-x:none;width:100%}
+/* overscroll-behavior-y:none stops iOS Safari's vertical elastic/rubber-band
+   bounce at the top/bottom of the page. Without it, a fast swipe/flick can
+   overscroll past the top edge for a frame - and since #g-header is
+   position:fixed (not sticky, see above), whatever's underneath it can
+   briefly render above it during that bounce, right where the status bar
+   icons are. The custom pull-to-refresh handler above only preventDefault()s
+   its own gated gesture (Drive connected + already at scrollY 0 + pulling
+   down past a threshold), so it doesn't cover ordinary scroll-flick
+   overscroll - this CSS property is what's needed for that general case. */
+html,body{overflow-x:hidden;overscroll-behavior-x:none;overscroll-behavior-y:none;width:100%}
 html{font-size:14px}html.text-sm{font-size:11px!important}html.text-lg{font-size:18px!important}html.text-xl{font-size:22px!important}
 /* Text size scaling on the app wrapper, via CSS zoom. transform:scale() was
    tried instead (zoom is non-standard and some engines ignore it), but
