@@ -24725,6 +24725,15 @@ function applyPlanSuggestion(e,uren,km,reisUren,omsch){
 function icsEscape(s){
   return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
 }
+// The exact title the calendar event gets for a given planned item - shared
+// by buildIcsForPlannedEntries (which actually writes it into the .ics) and
+// savePlanModal's re-export check below, so "did the calendar title change"
+// is answered the same way in both places instead of duplicating the rule.
+function icsTitleForPlanned(p){
+  if(!p)return '';
+  var catLbl=(typeof getCatLabel==='function'?getCatLabel(p.categorie):null)||p.categorie||'Activiteit';
+  return p.omschrijving ? p.omschrijving : (p.cursistNaam ? catLbl+' - '+p.cursistNaam : catLbl);
+}
 function buildIcsForPlannedEntries(items){
   var lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ZDA Urenregistratie//NL','CALSCALE:GREGORIAN'];
   var now=new Date();
@@ -24737,7 +24746,7 @@ function buildIcsForPlannedEntries(items){
     // to see in the calendar app, so lead with that when it's there. The
     // category (and contact, if any) still isn't lost - it moves into the
     // description instead of disappearing.
-    var title=p.omschrijving ? p.omschrijving : (p.cursistNaam ? catLbl+' - '+p.cursistNaam : catLbl);
+    var title=icsTitleForPlanned(p);
     var descParts=[];
     if(p.omschrijving) descParts.push(catLbl+(p.cursistNaam?' - '+p.cursistNaam:''));
     if(p.opmerking) descParts.push(p.opmerking);
@@ -24969,16 +24978,26 @@ function savePlanModal(planId){
       savePlanned();
       exportPlannedToIcs(createdEntries);
     }
-  } else if(oldPlan && oldPlan.calExported && (oldPlan.datum!==entry.datum || oldPlan.time!==entry.time)){
-    // The plan's date/time changed after it was already handed off to the
-    // OS calendar app once - that calendar entry has no live link back
-    // here, so it would silently keep showing the old date/time unless the
-    // user re-exports it. Ask, rather than either re-triggering the OS
-    // "Add to Calendar" sheet unprompted or leaving the calendar silently
-    // stale.
-    // Pass along exactly what changed - see openCalUpdatePrompt for why this
-    // matters more than it looks like it should.
-    openCalUpdatePrompt(entry.id, oldPlan.datum!==entry.datum, oldPlan.time!==entry.time);
+  } else if(oldPlan && oldPlan.calExported){
+    var calDateChanged = oldPlan.datum!==entry.datum;
+    var calTimeChanged = oldPlan.time!==entry.time;
+    // Previously this prompt ONLY fired for a date/time change, so editing
+    // the description/category/contact of an already-exported plan - which
+    // is exactly what determines the calendar event's TITLE, see
+    // icsTitleForPlanned - never offered to resend, and the Apple/Google/
+    // Windows calendar entry silently kept showing the old title forever.
+    var calTitleChanged = icsTitleForPlanned(oldPlan)!==icsTitleForPlanned(entry);
+    if(calDateChanged||calTimeChanged||calTitleChanged){
+      // The plan's date/time/title changed after it was already handed off
+      // to the OS calendar app once - that calendar entry has no live link
+      // back here, so it would silently keep showing the old info unless
+      // the user re-exports it. Ask, rather than either re-triggering the
+      // OS "Add to Calendar" sheet unprompted or leaving the calendar
+      // silently stale.
+      // Pass along exactly what changed - see openCalUpdatePrompt for why
+      // this matters more than it looks like it should.
+      openCalUpdatePrompt(entry.id, calDateChanged, calTimeChanged, calTitleChanged);
+    }
   }
 }
 // Manual check/uncheck of the "sent to calendar app" state from the plan
@@ -25000,7 +25019,7 @@ function togglePlanCalExport(planId,cb){
     savePlanned();
   }
 }
-function openCalUpdatePrompt(planId,dateChanged,timeChanged){
+function openCalUpdatePrompt(planId,dateChanged,timeChanged,titleChanged){
   var p=db.planned.find(function(x){return x.id===planId;});
   if(!p)return;
   // Title used to always say "Date changed", even when only the TIME was
@@ -25009,15 +25028,22 @@ function openCalUpdatePrompt(planId,dateChanged,timeChanged){
   // this prompt without a second thought - "I didn't change the date, so
   // this must not be for me" - which meant the new time never actually made
   // it to the calendar app even though the plan itself saved it correctly.
-  // Wording it after what actually changed keeps that from happening.
-  var titleLbl = (timeChanged && !dateChanged)
+  // Wording it after what actually changed keeps that from happening. A
+  // description/category/contact edit (which changes the calendar event's
+  // TITLE - see icsTitleForPlanned) gets its own generic wording rather than
+  // being mislabeled "Date changed" too.
+  var titleLbl = (timeChanged && !dateChanged && !titleChanged)
     ? tMap({nl:'Tijd gewijzigd',en:'Time changed',es:'Hora cambiada',fr:'Heure modifiée',de:'Uhrzeit geändert',ro:'Oră modificată',hu:'Időpont módosítva',ru:'Время изменено',it:'Ora modificata',pt:'Hora alterada'})
-    : tMap({nl:'Datum gewijzigd',en:'Date changed',es:'Fecha cambiada',fr:'Date modifiée',de:'Datum geändert',ro:'Dată modificată',hu:'Dátum módosítva',ru:'Дата изменена',it:'Data modificata',pt:'Data alterada'});
-  var whatLbl = (timeChanged && !dateChanged)
+    : (dateChanged || timeChanged)
+    ? tMap({nl:'Datum gewijzigd',en:'Date changed',es:'Fecha cambiada',fr:'Date modifiée',de:'Datum geändert',ro:'Dată modificată',hu:'Dátum módosítva',ru:'Дата изменена',it:'Data modificata',pt:'Data alterada'})
+    : tMap({nl:'Activiteit gewijzigd',en:'Activity changed',es:'Actividad modificada',fr:"Activité modifiée",de:'Aktivität geändert',ro:'Activitate modificată',hu:'Tevékenység módosítva',ru:'Мероприятие изменено',it:'Attività modificata',pt:'Atividade alterada'});
+  var whatLbl = (timeChanged && !dateChanged && !titleChanged)
     ? tMap({nl:'nieuwe tijd',en:'new time',es:'nueva hora',fr:'nouvelle heure',de:'neue Uhrzeit',ro:'noua oră',hu:'új időpont',ru:'новое время',it:'nuovo orario',pt:'nova hora'})
-    : (dateChanged && !timeChanged)
+    : (dateChanged && !timeChanged && !titleChanged)
     ? tMap({nl:'nieuwe datum',en:'new date',es:'nueva fecha',fr:'nouvelle date',de:'neues Datum',ro:'noua dată',hu:'új dátum',ru:'новую дату',it:'nuova data',pt:'nova data'})
-    : tMap({nl:'nieuwe datum/tijd',en:'new date/time',es:'nueva fecha/hora',fr:'nouvelle date/heure',de:'neues Datum/neue Uhrzeit',ro:'noua dată/oră',hu:'új dátum/időpont',ru:'новую дату/время',it:'nuova data/ora',pt:'nova data/hora'});
+    : (dateChanged || timeChanged)
+    ? tMap({nl:'nieuwe datum/tijd',en:'new date/time',es:'nueva fecha/hora',fr:'nouvelle date/heure',de:'neues Datum/neue Uhrzeit',ro:'noua dată/oră',hu:'új dátum/időpont',ru:'новую дату/время',it:'nuova data/ora',pt:'nova data/hora'})
+    : tMap({nl:'nieuwe gegevens',en:'new details',es:'nuevos datos',fr:'nouvelles informations',de:'neue Angaben',ro:'noile detalii',hu:'új adatok',ru:'новые данные',it:'nuovi dettagli',pt:'novos dados'});
   var subLbl=tMap({nl:'Deze activiteit stond al in je agenda-app. Wil je de agenda-afspraak ook bijwerken naar de '+whatLbl+'?',en:'This activity was already in your calendar app. Update the calendar entry to the '+whatLbl+' too?',es:'Esta actividad ya estaba en tu app de calendario. ¿Actualizar también la entrada del calendario a la '+whatLbl+'?',fr:"Cette activité était déjà dans votre application de calendrier. Mettre aussi à jour l'entrée avec la "+whatLbl+' ?',de:'Diese Aktivität war bereits in deiner Kalender-App. Auch den Kalendereintrag auf die '+whatLbl+' aktualisieren?',ro:'Această activitate era deja în aplicația ta de calendar. Actualizezi și intrarea din calendar cu '+whatLbl+'?',hu:'Ez a tevékenység már szerepelt a naptár alkalmazásodban. Frissítsük a naptárbejegyzést is az '+whatLbl+' szerint?',ru:'Это мероприятие уже было в вашем календаре. Обновить запись в календаре на '+whatLbl+'?',it:"Questa attività era già nella tua app calendario. Aggiornare anche la voce del calendario con la "+whatLbl+'?',pt:'Esta atividade já estava no seu app de calendário. Atualizar também a entrada no calendário para a '+whatLbl+'?'});
   var updateBtnLbl=tMap({nl:'Agenda bijwerken',en:'Update calendar',es:'Actualizar calendario',fr:'Mettre à jour le calendrier',de:'Kalender aktualisieren',ro:'Actualizează calendarul',hu:'Naptár frissítése',ru:'Обновить календарь',it:'Aggiorna calendario',pt:'Atualizar calendário'});
   var h='<div style="padding:16px">';
