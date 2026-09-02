@@ -27542,9 +27542,21 @@ function renderStudieContact(c, status) {
 }
 
 function getStudieStats(lesCode) {
-  // Find all logboek entries where thema starts with this code
+  // Find all logboek entries belonging to this lesson code. themacode is an
+  // exact-match field and always safe to compare directly. The thema TEXT
+  // field is only safe with a plain startsWith check when the codes can't
+  // collide as prefixes of each other - but "BS 1" IS a text prefix of
+  // "BS 16", "BS 10"-"BS 19", "BS 100"+, etc. (same for "BS 2" vs "BS 20"-
+  // "BS 29", and so on), so a naive indexOf()===0 here silently pulled
+  // entries for lesson 16 into lesson 1's stats. Require the character right
+  // after the matched code to be a non-digit (space, dash, end of string) so
+  // "BS 1" only matches "BS 1", "BS 1 - ...", etc, never "BS 16".
   var relevant = db.entries.filter(function(e) {
-    return (e.thema||'').indexOf(lesCode) === 0 || (e.themacode||'') === lesCode;
+    if ((e.themacode||'') === lesCode) return true;
+    var th = e.thema||'';
+    if (th.indexOf(lesCode) !== 0) return false;
+    var nextCh = th.charAt(lesCode.length);
+    return !nextCh || !/[0-9]/.test(nextCh);
   });
   // Group by cursistId/cursistNaam
   var byContact = {};
