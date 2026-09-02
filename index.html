@@ -11724,11 +11724,21 @@ function renderReminderRepeatList(){
     var col=AARDEN_COLORS[(cat&&cat.aard)||e.aard||'Overig']||'#A1A1AA';
     var idArg=ssIdArg(e.id);
     var dateArg=reminderRepeatPrefillDate?ssIdArg(reminderRepeatPrefillDate):'';
+    // activityTitle() prefers the contact's name over the description, so
+    // every Bible study/visit/etc. logged with the same contact shows the
+    // exact same title here ("Filmon", "Filmon", "Filmon"...) with nothing
+    // else on the row to tell them apart - which topic was covered, or what
+    // the visit was about. Surface that as a second line whenever it isn't
+    // already what's shown as the title (i.e. whenever there IS a contact,
+    // so the title used their name instead of the description/topic).
+    var topicTxt=e.thema?(getThemaDisplay(e.thema)||e.thema):(e.omschrijving||'');
+    var showTopic=topicTxt&&topicTxt!==activityTitle(e);
     return '<div class="activity-card" style="margin-bottom:6px;cursor:pointer" onclick="closeModals();quickRepeatFromLogEntry('+idArg+(dateArg?','+dateArg:'')+')">'
       +'<div class="activity-card-inner">'
       +'<div class="ac-stripe" style="background:'+col+'"></div>'
       +'<div class="ac-body">'
       +'<div class="ac-top"><div class="ac-who">'+activityTitle(e)+'</div><div class="ac-hours">'+(entryUren(e)||0)+t('hours_abbr')+(e.km?' · '+e.km+distUnit():'')+'</div></div>'
+      +(showTopic?'<div class="ac-cat" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(topicTxt)+'</div>':'')
       +'<div class="ac-cat">'+getCatLabel(e.categorie)+' · '+formatDateShort(e.datum)+'</div>'
       +'</div></div></div>';
   }).join(''):'<div style="font-size:13px;color:var(--text3);text-align:center;padding:20px 0">'+t('quick_repeat_empty')+'</div>';
