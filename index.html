@@ -24391,9 +24391,18 @@ function openChangelog(){
     h+='<div style="font-size:13px;color:var(--text3);margin-bottom:14px">'+t('updates_empty')+'</div>';
   }else{
     var updateLbl=tMap(UPDATE_LBL_MAP);
-    CHANGELOG.forEach(function(rel,i){
-      var num=CHANGELOG.length-i;
-      var open=i===0;
+    // CHANGELOG is stored oldest-first (new releases get pushed onto the
+    // end), but the reading order here should be newest-first - otherwise
+    // the newest release ends up mislabeled with the lowest "Update N"
+    // number and buried, collapsed, at the very bottom of the list, which
+    // is exactly backwards from what someone checking "what's new" expects.
+    // Build (release, its true number) pairs from the original array first
+    // so numbering still matches APP_VERSION/the Update-button count, then
+    // reverse just the display order.
+    var releases=CHANGELOG.map(function(rel,i){return {rel:rel,num:i+1};}).slice().reverse();
+    releases.forEach(function(entry,idx){
+      var rel=entry.rel,num=entry.num;
+      var open=idx===0;
       h+='<div class="cl-row">';
       h+='<button type="button" onclick="toggleChangelogRow(this)" style="all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0">';
       h+='<span><span style="font-size:13px;font-weight:700">'+updateLbl+' '+num+'</span><span style="font-size:11px;color:var(--text3);margin-left:8px">'+formatDate(rel.date)+'</span></span>';
