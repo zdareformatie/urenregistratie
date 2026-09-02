@@ -24084,6 +24084,17 @@ function openPlanModal(planId, prefillDate){
   var catOpts = getCATEGORIES().filter(function(c){return !c.isTravel;}).map(function(c){
     return '<option value="'+c.label+'"'+(p&&p.categorie===c.label?' selected':'')+'>'+getCatLabel(c.label)+'</option>';
   }).join('');
+  // Same Thema dropdown as the logged-entry edit modal (see ee-thema in
+  // openEditEntryModal) - previously missing here entirely, which meant a
+  // planned Bible study had no way to show or change its topic, and (see
+  // savePlanModal) saving through this modal silently dropped whatever
+  // thema/themacode the wizard had originally set on the plan.
+  var planThemaOpts='<option value="">— '+t('no_topic')+' —</option>'
+    +THEMAS.map(function(th){
+      var sel=(p&&(p.themacode===th[0]||p.thema===th[0]+' - '+th[1]||p.thema===th[0]))?'selected':'';
+      var label=getThemaDisplay(th[0]+' - '+th[1]);
+      return '<option value="'+th[0]+'" '+sel+'>'+label+'</option>';
+    }).join('');
 
   var h = '<div style="padding:16px;max-height:80vh;overflow-y:auto">';
   h += '<div style="font-size:15px;font-weight:700;margin-bottom:14px">'+(p?t('plan_edit_title')||'Activiteit bewerken':t('plan_new_title')||'Activiteit plannen')+'</div>';
@@ -24119,6 +24130,18 @@ function openPlanModal(planId, prefillDate){
   h += '<span class="form-label">'+t('wizard_desc_lbl')+'</span>';
   h += '<input type="text" id="plan-omschrijving" value="'+(p&&p.omschrijving?p.omschrijving.replace(/"/g,'&quot;'):'')+'" placeholder="'+(t('optional_lbl')||'Optioneel')+'..." style="margin-bottom:8px">';
   h += '<div id="plan-suggestions" style="background:var(--brand-light);border-radius:8px;padding:10px;margin-bottom:8px;font-size:12px;display:none"></div>';
+  h += '<span class="form-label">'+t('wizard_theme')+'</span>';
+  h += '<select id="plan-thema" style="margin-bottom:8px" onchange="togglePlanVrij()">'+planThemaOpts+'</select>';
+  var planThemaCode=p?(p.themacode||(p.thema&&THEMAS.some(function(th){return th[0]+' - '+th[1]===p.thema;})?p.thema.split(' - ')[0]:'')):'';
+  h += '<div id="plan-vrij-wrap" style="display:'+(planThemaCode==='Vrij onderwerp'?'block':'none')+';margin-bottom:8px">';
+  h += '<span class="form-label">'+t('wizard_free_topic')+'</span>';
+  h += '<input type="text" id="plan-vrij" list="free-thema-dl" placeholder="'+t('wizard_free_placeholder')+'" value="'+(planThemaCode==='Vrij onderwerp'&&p?(p.thema||'').replace(/"/g,'&quot;'):'')+'" style="margin-bottom:8px">'+freeThemaDatalistHtml();
+  h += '</div>';
+  // Same "Onderwerp afgerond" checkbox as ee-thema-completed in the
+  // logged-entry edit modal - shown whenever a topic is picked.
+  h += '<div id="plan-thema-completed-wrap" style="display:'+(planThemaCode?'block':'none')+';margin-bottom:8px">';
+  h += '<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer"><input id="plan-thema-completed" type="checkbox" '+(p&&p.themaCompleted===false?'':'checked')+' style="width:16px;height:16px;flex-shrink:0;margin-top:2px"><span><span style="font-size:13px;display:block">'+t('thema_completed_lbl')+'</span><span style="font-size:11px;color:var(--text3)">'+t('thema_completed_hint')+'</span></span></label>';
+  h += '</div>';
   h += '<span class="form-label">'+(t('wizard_km')||'Km')+'</span><input type="number" id="plan-km" value="'+(p&&p.km?p.km:'')+'" min="0" placeholder="0" style="margin-bottom:8px">';
   h += '<span class="form-label">'+t('wizard_note')+'</span>';
   h += '<textarea id="plan-opmerking" placeholder="'+(t('wizard_notes_ph')||'Notities...')+'" style="height:60px">'+(p&&p.opmerking?p.opmerking:'')+'</textarea>';
@@ -24652,6 +24675,15 @@ function onPlanCatChange(){
   var cur = document.getElementById('plan-cursist');
   if(cat) fillPlanSuggestions(cat.value, cur?cur.value:'');
 }
+// Same pattern as toggleEeVrij() in the logged-entry edit modal - shows the
+// free-text topic input when "Vrij onderwerp" is picked from plan-thema.
+function togglePlanVrij(){
+  var sel=document.getElementById('plan-thema');
+  var wrap=document.getElementById('plan-vrij-wrap');
+  if(sel&&wrap)wrap.style.display=sel.value==='Vrij onderwerp'?'block':'none';
+  var compWrap=document.getElementById('plan-thema-completed-wrap');
+  if(sel&&compWrap)compWrap.style.display=sel.value?'block':'none';
+}
 function onPlanCursistChange(){
   var cat = document.getElementById('plan-cat');
   var cur = document.getElementById('plan-cursist');
@@ -24811,6 +24843,23 @@ function savePlanModal(planId){
   var wantsCal = calCb ? calCb.checked : false;
   if(!datum||!datum.value||!cat||!cat.value){ alert(LANG==='en'?'Please fill in date and category.':LANG==='es'?'Por favor complete fecha y categoría.':'Vul datum en categorie in.'); return; }
   var cursistObj = cur&&cur.value ? db.cursisten.find(function(c){return String(c.id)===String(cur.value);}) : null;
+  // Read the Thema fields (see plan-thema/plan-vrij above) the same way
+  // saveEditEntry does for ee-thema/ee-vrij - previously this modal built
+  // `entry` without thema/themacode at all, and since db.planned[idx]=entry
+  // below is a full replace (not a merge), saving ANY edit here - even one
+  // that never touched the topic - silently wiped whatever thema the wizard
+  // had originally set on the plan.
+  var themaSel = document.getElementById('plan-thema');
+  var vrijInp = document.getElementById('plan-vrij');
+  var themaCompletedCb = document.getElementById('plan-thema-completed');
+  var planThemaCode = themaSel ? themaSel.value : '';
+  var planThemaVal = '';
+  if(planThemaCode==='Vrij onderwerp'){
+    planThemaVal = vrijInp ? vrijInp.value.trim() : '';
+  } else if(planThemaCode){
+    var thRow = THEMAS.find(function(th){return th[0]===planThemaCode;});
+    planThemaVal = thRow ? (thRow[0]+' - '+thRow[1]) : planThemaCode;
+  }
   var entry = {
     id: planId || Date.now(),
     datum: datum.value,
@@ -24819,6 +24868,9 @@ function savePlanModal(planId){
     cursistId: cursistObj?cursistObj.id:'',
     cursistNaam: cursistObj?cursistObj.naam:'',
     omschrijving: omsch?omsch.value:'',
+    thema: planThemaVal,
+    themacode: planThemaCode,
+    themaCompleted: themaCompletedCb ? themaCompletedCb.checked : true,
     uren: parseFloat(uren&&uren.value)||0,
     km: parseFloat(km&&km.value)||0,
     opmerking: opm?opm.value:'',
@@ -25275,7 +25327,12 @@ function agendaQuickConfirm(planId){
     categorie: p.categorie,
     aard: (getCATEGORIES().find(function(c){return c.label===p.categorie;})||{}).aard||'',
     omschrijving: p.omschrijving||'',
-    thema: '',
+    // Was hardcoded blank - db.planned items can carry a real thema/
+    // themacode now (see savePlanModal/openPlanModal), so a one-tap
+    // confirm should keep it instead of silently dropping the topic.
+    thema: p.thema||'',
+    themacode: p.themacode||'',
+    themaCompleted: p.themaCompleted!==false,
     uren: p.uren||0,
     km: p.km||0,
     kosten: p.kosten||0,
