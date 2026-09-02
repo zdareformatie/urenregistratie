@@ -12320,24 +12320,24 @@ function renderSubbar(screen){
     years.forEach(function(y){var o=document.createElement('option');o.value=y;o.textContent=y;if(y===rapportYear)o.selected=true;yrSel.appendChild(o);});
     yrSel.onchange=function(){rapportYear=this.value;rapportMonth='';renderRapport();renderSubbar('rapport');};
     sb.appendChild(yrSel);
-    var rm=document.createElement('button');rm.className='g-subbar-btn'+(rapportViewMode==='month'?' active':'');
-    rm.style.flexShrink='0';
-    rm.textContent=t('month_view');
-    rm.onclick=function(){rapportViewMode='month';renderRapport();renderSubbar('rapport');};
-    var ry=document.createElement('button');ry.className='g-subbar-btn'+(rapportViewMode==='year'?' active':'');
-    ry.style.flexShrink='0';
-    ry.textContent=t('year_view');
-    ry.onclick=function(){rapportViewMode='year';renderRapport();renderSubbar('rapport');};
-    // Third mode: a custom from/to month range (e.g. "May 2024 - May 2026"),
-    // for reports that span more than one calendar year or an arbitrary
-    // stretch that isn't a single month or a single whole year. Needs two
-    // month values first, so it opens a small picker modal instead of
-    // switching mode immediately like the month/year buttons do.
-    var rr=document.createElement('button');rr.className='g-subbar-btn'+(rapportViewMode==='range'?' active':'');
-    rr.style.flexShrink='0';
-    rr.textContent=rapportRangeLbl();
-    rr.onclick=function(){openRapportRangeModal();};
-    sb.appendChild(rm);sb.appendChild(ry);sb.appendChild(rr);
+    // Single consolidated mode selector (month / year / custom period)
+    // replacing what used to be three separate g-subbar-btn buttons.
+    // The third option opens a from/to date-picker modal instead of
+    // switching mode immediately like the other two options do; if the
+    // user cancels the modal, rapportViewMode is left unchanged and the
+    // re-render below just reflects whatever mode was already active.
+    var modeSel=document.createElement('select');modeSel.id='rapport-mode-sel';
+    modeSel.style.cssText='flex:0 0 auto;font-size:13px;padding:3px 4px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;cursor:pointer';
+    var optM=document.createElement('option');optM.value='month';optM.textContent=t('month_view');if(rapportViewMode==='month')optM.selected=true;modeSel.appendChild(optM);
+    var optY=document.createElement('option');optY.value='year';optY.textContent=t('year_view');if(rapportViewMode==='year')optY.selected=true;modeSel.appendChild(optY);
+    var optR=document.createElement('option');optR.value='range';optR.textContent=rapportRangeLbl();if(rapportViewMode==='range')optR.selected=true;modeSel.appendChild(optR);
+    modeSel.onchange=function(){
+      var v=this.value;
+      if(v==='month'){rapportViewMode='month';renderRapport();renderSubbar('rapport');}
+      else if(v==='year'){rapportViewMode='year';renderRapport();renderSubbar('rapport');}
+      else if(v==='range'){openRapportRangeModal();renderSubbar('rapport');}
+    };
+    sb.appendChild(modeSel);
     var pillWrap=document.createElement('div');pillWrap.id='rapport-months-subbar';
     pillWrap.style.cssText='display:flex;gap:3px;flex-wrap:nowrap;flex-shrink:0;';
     sb.appendChild(pillWrap);
@@ -18458,7 +18458,7 @@ function _buildRapportInner(){
   const sortedDays=Object.keys(byDay).sort();
 
   var jaarLabel=LANG==='en'?'Year overview':LANG==='es'?'Resumen anual':LANG==='fr'?'Aperçu annuel':LANG==='de'?'Jahresübersicht':LANG==='ro'?'Privire de ansamblu anuală':LANG==='hu'?'Éves áttekintés':LANG==='ru'?'Годовой обзор':'Jaaroverzicht';
-  var maand=rapportViewMode==='year'?(rapportYear+' – '+jaarLabel):rapportViewMode==='range'?(formatMonthFull(rapportRangeFrom)+' – '+formatMonthFull(rapportRangeTo)):(rapportMonth?formatMonthFull(rapportMonth):'Alle periodes');
+  var maand=rapportViewMode==='year'?(rapportYear+' – '+jaarLabel):rapportViewMode==='range'?(formatDate(rapportRangeFrom)+' – '+formatDate(rapportRangeTo)):(rapportMonth?formatMonthFull(rapportMonth):'Alle periodes');
   // Vacation/leave stats (getVakantieStats/getRetentionStats) compute a
   // fixed annual allotment that resets every Jan 1 - meaningless summed
   // across more than one calendar year. Computed once here and reused by
@@ -18843,32 +18843,74 @@ function _buildRapportInner(){
        the card's top edge (was clipped-looking in Feb when that count and
        the container height were nearly equal). -->
   ${s.workRole!=='kantoor'?(()=>{
-    var _bsByMonth=[];
-    for(var _mm=1;_mm<=12;_mm++){
-      var _mk=rapportYear+'-'+String(_mm).padStart(2,'0');
-      _bsByMonth.push(db.entries.filter(function(e){return (e.datum||'').startsWith(_mk)&&e.categorie==='Bijbelstudie geven';}).length);
+    // Build the list of {y,m} year-months to chart: the 12 months of
+    // rapportYear for month/year mode (unchanged behavior), or every
+    // calendar month actually spanned by the custom range (inclusive) when
+    // rapportViewMode==='range' - a range can cover many months/years, so
+    // this list length is no longer fixed at 12.
+    var _isRangeMode=rapportViewMode==='range';
+    var _bsMonths=[];
+    if(_isRangeMode&&rapportRangeFrom&&rapportRangeTo){
+      var _fy=parseInt(rapportRangeFrom.slice(0,4),10),_fm=parseInt(rapportRangeFrom.slice(5,7),10);
+      var _ty=parseInt(rapportRangeTo.slice(0,4),10),_tm=parseInt(rapportRangeTo.slice(5,7),10);
+      var _cy=_fy,_cm=_fm;
+      while(_cy<_ty||(_cy===_ty&&_cm<=_tm)){
+        _bsMonths.push({y:_cy,m:_cm});
+        _cm++;if(_cm>12){_cm=1;_cy++;}
+      }
+    } else {
+      for(var _mm=1;_mm<=12;_mm++)_bsMonths.push({y:parseInt(rapportYear,10),m:_mm});
     }
+    var _bsByMonth=_bsMonths.map(function(ym){
+      var _mk=ym.y+'-'+String(ym.m).padStart(2,'0');
+      return db.entries.filter(function(e){return (e.datum||'').startsWith(_mk)&&e.categorie==='Bijbelstudie geven';}).length;
+    });
+    // Max computed across every month being shown (not per-row), so bar
+    // heights stay comparable across the whole multi-row chart.
     var _maxBS=Math.max.apply(null,_bsByMonth.concat([1]));
     var _bsGreen='#4A7C59';
     var _nowBs=new Date();
-    var _isCurYr=rapportYear===String(_nowBs.getFullYear());
+    var _isCurYr=!_isRangeMode&&rapportYear===String(_nowBs.getFullYear());
     var _curM=_nowBs.getMonth()+1;
     var _bsTitle=LANG==='en'?'Bible studies given':LANG==='es'?'Estudios bíblicos dados':LANG==='fr'?'Études bibliques données':LANG==='de'?'Gegebene Bibelstudien':LANG==='ro'?'Studii biblice date':LANG==='hu'?'Tartott bibliatanulmányok':LANG==='ru'?'Проведённые библейские изучения':LANG==='it'?'Studi biblici tenuti':LANG==='pt'?'Estudos bíblicos dados':'Gegeven bijbelstudies';
-    var _bars=_bsByMonth.map(function(cnt,i){
-      var _act=_isCurYr&&(i+1)===_curM;
+    // One bar-HTML string per month; kept as an array (not joined yet) so
+    // it can be chunked into rows of up to 12 below. In range mode, the
+    // first bar of each new calendar year gets a tiny "'25" marker above
+    // it so a multi-year chart isn't ambiguous about which bars belong to
+    // which year; non-range mode is untouched (no marker, same as before).
+    var _prevYearShown=null;
+    var _barHtmls=_bsByMonth.map(function(cnt,i){
+      var ym=_bsMonths[i];
+      var _act=_isCurYr&&ym.m===_curM;
       var _barH=_maxBS>0?Math.max(3,Math.round(cnt/_maxBS*24)):3;
-      var _moShort=MONTHS_FULL[i]?(MONTHS_FULL[i].charAt(0).toUpperCase()+MONTHS_FULL[i].slice(1,3).toLowerCase()):'';
+      var _moShort=MONTHS_FULL[ym.m-1]?(MONTHS_FULL[ym.m-1].charAt(0).toUpperCase()+MONTHS_FULL[ym.m-1].slice(1,3).toLowerCase()):'';
+      var _yearMarkerHtml='';
+      if(_isRangeMode){
+        var _showYearMarker=ym.y!==_prevYearShown;
+        _prevYearShown=ym.y;
+        _yearMarkerHtml='<div style="font-size:6px;color:var(--text3);line-height:1;height:7px">'+(_showYearMarker?("'"+String(ym.y).slice(2)):'')+'</div>';
+      }
       return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+        +_yearMarkerHtml
         +'<div style="width:100%;height:'+_barH+'px;background:'+(_act?_bsGreen:(cnt?_bsGreen+'99':'var(--border)'))+';border-radius:3px 3px 0 0"></div>'
         +'<div style="font-size:7px;color:'+(_act?_bsGreen:'var(--text3)')+'">'+_moShort+'</div>'
         +'</div>';
+    });
+    // Chunk chronologically into rows of up to 12 months each. With exactly
+    // 12 months (the non-range case) this yields a single row, identical in
+    // appearance to before.
+    var _bsRows=[];
+    for(var _ri=0;_ri<_barHtmls.length;_ri+=12){_bsRows.push(_barHtmls.slice(_ri,_ri+12));}
+    var _bars=_bsRows.map(function(row){
+      return '<div style="display:flex;align-items:flex-end;gap:3px;height:'+(_isRangeMode?51:44)+'px;padding-top:6px">'+row.join('')+'</div>';
     }).join('');
+    var _bsPeriodLbl=_isRangeMode?(formatDate(rapportRangeFrom)+' – '+formatDate(rapportRangeTo)):rapportYear;
 
     var _newBsLbl=LANG==='en'?'New Bible-study contacts this year':LANG==='es'?'Nuevos contactos de estudio bíblico este año':LANG==='fr'?"Nouveaux contacts d'étude biblique cette année":LANG==='de'?'Neue Bibelstudien-Kontakte dieses Jahr':LANG==='ro'?'Contacte noi de studiu biblic anul acesta':LANG==='hu'?'Idei új bibliatanulmányozó kapcsolatok':LANG==='ru'?'Новые контакты по изучению Библии в этом году':LANG==='it'?"Nuovi contatti di studio biblico quest'anno":LANG==='pt'?'Novos contactos de estudo bíblico este ano':'Nieuwe bijbelstudie-contacten dit jaar';
 
-    return `<div class="settings-section-title" style="margin-bottom:8px">${_bsTitle} ${rapportYear}</div>
+    return `<div class="settings-section-title" style="margin-bottom:8px">${_bsTitle} ${_bsPeriodLbl}</div>
     <div class="card">
-      <div style="display:flex;align-items:flex-end;gap:3px;height:44px;padding-top:6px">${_bars}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">${_bars}</div>
       <div style="font-size:11px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">${_newBsLbl}: <strong style="color:var(--text)">${_newBsCount}</strong></div>
     </div>`;
   })():''}
@@ -18932,7 +18974,7 @@ function _buildRapportInner(){
       // Sick leave used to turn its row red once it had any days - reads as
       // an alarm/error, but taking sick leave isn't a problem to flag, so it
       // now stays the same neutral color as every other row here.
-      var _vakHeaderPeriod=_vakRangeMultiYear?(rapportRangeFrom+' – '+rapportRangeTo):_vakStatsYear;
+      var _vakHeaderPeriod=_vakRangeMultiYear?(formatDate(rapportRangeFrom)+' – '+formatDate(rapportRangeTo)):_vakStatsYear;
       // Multi-year ranges: toggleVakantieDetail() only knows how to build a
       // single year's (or year-to-date-through-one-month's) day list, so a
       // per-day breakdown can't be shown against a total that already spans
@@ -19098,7 +19140,7 @@ function _buildRapportInner(){
       // Follows the same month/year toggle as the glance-stats row above -
       // spelling out the exact period (month name, or just the year) removes
       // any ambiguity about what 's being summarized here.
-      const _hwPeriodLbl=rapportViewMode==='year'?rapportYear:rapportViewMode==='range'?(formatMonthFull(rapportRangeFrom)+' – '+formatMonthFull(rapportRangeTo)):formatMonthFull(rapportMonth);
+      const _hwPeriodLbl=rapportViewMode==='year'?rapportYear:rapportViewMode==='range'?(formatDate(rapportRangeFrom)+' – '+formatDate(rapportRangeTo)):formatMonthFull(rapportMonth);
       return `<div class="settings-section-title" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">
         <span>${t('hw_summary_title')} ${_hwPeriodLbl}</span>
         <span onclick="var e=document.getElementById('hw-explain');e.style.display=e.style.display==='none'?'block':'none';" style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;text-transform:none;letter-spacing:normal;color:var(--text3);cursor:pointer;flex-shrink:0">
@@ -19267,7 +19309,7 @@ function _buildRapportInner(){
     <div class="rp-prog-row"><div class="rp-prog-meta"><span>% ${LANG==='en'?'of total hours':LANG==='es'?'del total de horas':LANG==='fr'?'des heures totales':LANG==='de'?'der Gesamtstunden':LANG==='ro'?'din total ore':LANG==='hu'?'az összes óra':LANG==='ru'?'от общего времени':'van totaal uren'}</span><strong>${totalUren>0?Math.round(critUren/totalUren*100):0}%</strong></div><div class="rp-prog-track"><div class="rp-prog-fill" style="width:${totalUren>0?Math.round(critUren/totalUren*100):0}%;background:#1D4ED8"></div></div></div>
   </div>
   <div class="rp-vak-section rp-sec-absence">
-    <div class="rp-sh">${t('holiday')} ${_vakRangeMultiYear?(rapportRangeFrom+' – '+rapportRangeTo):_vakStatsYear}</div>
+    <div class="rp-sh">${t('holiday')} ${_vakRangeMultiYear?(formatDate(rapportRangeFrom)+' – '+formatDate(rapportRangeTo)):_vakStatsYear}</div>
     <div class="rp-cat-item"><div class="rp-cname">${getCatLabel('Vakantie')}</div><div class="rp-chours">${_vakRangeMultiYear?(_vak.vakUsedDays+' '+(t('days_lbl')||'')):(_vak.vakRemDays+' / '+_vak.vakDays+' '+(t('days_lbl')||''))}</div></div>
     ${_vak.verlofDays>0?`<div class="rp-cat-item"><div class="rp-cname">${getCatLabel('Verlof')}</div><div class="rp-chours">${_vak.verlofDays} ${t('days_lbl')||''}</div></div>`:''}
     ${_vak.ziekDays>0?`<div class="rp-cat-item"><div class="rp-cname">${t('sick_leave')}</div><div class="rp-chours">${_vak.ziekDays} ${t('days_lbl')||''}</div></div>`:''}
@@ -19972,13 +20014,13 @@ function filterByYearMonth(entries,year,month){
 }
 
 // Rapport custom date range (rapportViewMode==='range') - `from`/`to` are
-// 'YYYY-MM' strings, inclusive on both ends. String comparison is safe here
-// since both the entry's 'YYYY-MM' slice and from/to share that exact
-// format, where lexicographic order matches chronological order.
+// full 'YYYY-MM-DD' day strings, inclusive on both ends. String comparison
+// is safe here since both the entry's 'YYYY-MM-DD' datum and from/to share
+// that exact format, where lexicographic order matches chronological order.
 function filterByRange(entries,from,to){
   if(!from&&!to)return entries;
   return entries.filter(function(e){
-    var d=(e.datum||'').slice(0,7);
+    var d=e.datum||'';
     if(from&&d<from)return false;
     if(to&&d>to)return false;
     return true;
@@ -21723,8 +21765,7 @@ function exportForPresident(prefs){
   // year's vacation days.
   var exportVacationDays=prefs.absence===false?[]:(db.vacationDays||[]).filter(function(d){
     if(isRangeExport){
-      var dm=(d||'').slice(0,7);
-      return(!rapportRangeFrom||dm>=rapportRangeFrom)&&(!rapportRangeTo||dm<=rapportRangeTo);
+      return(!rapportRangeFrom||d>=rapportRangeFrom)&&(!rapportRangeTo||d<=rapportRangeTo);
     }
     return(d||'').startsWith(exportYear);
   });
@@ -24531,7 +24572,7 @@ function openPdfExportOptions(mode){
   // glance what period is about to go out.
   var periodFieldLbl=tMap({nl:'Periode',en:'Period',es:'Período',fr:'Période',de:'Zeitraum',ro:'Perioadă',hu:'Időszak',ru:'Период',it:'Periodo',pt:'Período'});
   var curPeriod=pdfExportPeriodForCurrentView();
-  var periodValue=curPeriod==='month'?formatMonthFull(rapportMonth):curPeriod==='range'?(formatMonthFull(rapportRangeFrom)+' – '+formatMonthFull(rapportRangeTo)):rapportYear;
+  var periodValue=curPeriod==='month'?formatMonthFull(rapportMonth):curPeriod==='range'?(formatDate(rapportRangeFrom)+' – '+formatDate(rapportRangeTo)):rapportYear;
   h+='<div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--border)">'
     +'<span style="font-size:13px;color:var(--text2)">'+periodFieldLbl+'</span>'
     +'<strong style="font-size:14px">'+periodValue+'</strong>'
@@ -24916,30 +24957,28 @@ function saveVacationRange(){
   renderRapport();
 }
 
-// Rapport custom date-range mode ("Aangepast") - a third view alongside
+// Rapport custom date-range mode ("Periode") - a third view alongside
 // month/year that lets someone see aggregated report data across an
-// arbitrary span of months (e.g. "May 2024 - May 2026"), not just one month
-// or one calendar year. Month-granularity ('YYYY-MM'), not day-level, since
-// every Rapport filter (filterByRange, the KM-rate bucketing, etc.) already
-// works in whole months, matching rapportMonth's own format.
+// arbitrary span of days (e.g. "13 mei 2024 - 3 juni 2026"), not just one
+// month or one calendar year. Day-granularity ('YYYY-MM-DD'), matching
+// e.datum and db.vacationDays entries directly (see filterByRange).
 function rapportRangeLbl(){
-  return tMap({nl:'Aangepast',en:'Custom',es:'Personalizado',fr:'Personnalisé',de:'Benutzerdefiniert',ro:'Personalizat',hu:'Egyéni',ru:'Свой период',it:'Personalizzato',pt:'Personalizado'});
+  return tMap({nl:'Periode',en:'Period',es:'Período',fr:'Période',de:'Zeitraum',ro:'Perioadă',hu:'Időszak',ru:'Период',it:'Periodo',pt:'Período'});
 }
 function openRapportRangeModal(){
-  var title=tMap({nl:'Aangepaste periode',en:'Custom period',es:'Período personalizado',fr:'Période personnalisée',de:'Benutzerdefinierter Zeitraum',ro:'Perioadă personalizată',hu:'Egyéni időszak',ru:'Свой период',it:'Periodo personalizzato',pt:'Período personalizado'});
+  var title=tMap({nl:'Periode',en:'Period',es:'Período',fr:'Période',de:'Zeitraum',ro:'Perioadă',hu:'Időszak',ru:'Период',it:'Periodo',pt:'Período'});
   var fromLbl=tMap({nl:'Van',en:'From',es:'Desde',fr:'Du',de:'Von',ro:'De la',hu:'Ettől',ru:'С',it:'Da',pt:'De'});
   var toLbl=tMap({nl:'Tot en met',en:'Through',es:'Hasta',fr:'Au',de:'Bis',ro:'Până la',hu:'Eddig',ru:'По',it:'A',pt:'Até'});
-  var nowYm=ymdLocal().slice(0,7);
-  // Default "from" to whatever month was last viewed (if any), else the
-  // current month; default "to" to the current month - a sensible starting
-  // point the user can then widen in either direction.
-  var fromDefault=rapportRangeFrom||rapportMonth||nowYm;
-  var toDefault=rapportRangeTo||nowYm;
+  // Default "from" to whatever month was last viewed (if any), else the 1st
+  // of the current month; default "to" to today - a sensible starting point
+  // the user can then widen in either direction.
+  var fromDefault=rapportRangeFrom||(rapportMonth?rapportMonth+'-01':ymdLocal().slice(0,8)+'01');
+  var toDefault=rapportRangeTo||ymdLocal();
   var h='<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>';
   h+='<div style="font-size:15px;font-weight:700;margin-bottom:14px;text-align:center">'+title+'</div>';
   h+='<div style="display:flex;flex-direction:column;gap:12px">';
-  h+='<div><label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">'+fromLbl+'</label><input type="month" id="rapport-range-from" value="'+fromDefault+'" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;box-sizing:border-box"></div>';
-  h+='<div><label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">'+toLbl+'</label><input type="month" id="rapport-range-to" value="'+toDefault+'" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;box-sizing:border-box"></div>';
+  h+='<div><label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">'+fromLbl+'</label><input type="date" id="rapport-range-from" value="'+fromDefault+'" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;box-sizing:border-box"></div>';
+  h+='<div><label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">'+toLbl+'</label><input type="date" id="rapport-range-to" value="'+toDefault+'" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;box-sizing:border-box"></div>';
   h+='</div>';
   h+='<div style="display:flex;gap:8px;margin-top:16px">';
   h+='<button class="btn" onclick="closeModals()" style="flex:1">'+t('cancel_btn')+'</button>';
@@ -28062,8 +28101,18 @@ function renderStudieContact(c, status, lesCode) {
 // (toggleEntryThemaCompletedFromModal, editEntryDetailNote) rebuild THIS
 // modal in place instead of falling back to the plain single-entry one.
 var _entryDetailReopen = null;
-function openStudieContactHistoryModal(lesCode, cursistKey) {
-  _entryDetailReopen = function(){ openStudieContactHistoryModal(lesCode, cursistKey); };
+// Which session's full detail block is expanded (single-open accordion, same
+// convention as the app's other exclusive accordions - e.g. Cursisten rows,
+// Settings sections). Reset to the latest session every time the modal is
+// freshly opened (not re-rendered in place after an edit) so the default view
+// still matches the old fixed-to-latest behavior; a toggle click or an edit
+// made from within the popup both pass preserveOpen=true so the accordion
+// state survives the rebuild instead of snapping back to latest.
+var _studyHistOpenId = null;
+var _studyHistCtx = null;
+function openStudieContactHistoryModal(lesCode, cursistKey, preserveOpen) {
+  _studyHistCtx = {lesCode:lesCode, cursistKey:cursistKey};
+  _entryDetailReopen = function(){ openStudieContactHistoryModal(lesCode, cursistKey, true); };
   var relevant = db.entries.filter(function(e) {
     if (!e.cursistNaam) return false;
     var key = e.cursistId||e.cursistNaam;
@@ -28074,16 +28123,29 @@ function openStudieContactHistoryModal(lesCode, cursistKey) {
     var nextCh = th.charAt(lesCode.length);
     return !nextCh || !/[0-9]/.test(nextCh);
   });
-  if (!relevant.length) { _entryDetailReopen = null; return; }
+  if (!relevant.length) { _entryDetailReopen = null; _studyHistOpenId = null; _studyHistCtx = null; return; }
   var sorted = relevant.slice().sort(function(a,b){ return a.datum>b.datum?1:-1; }); // oldest first
   var latest = sorted[sorted.length-1];
   var cuId = latest.cursistId||'';
   var titleTxt = getThemaDisplay(latest.thema||latest.omschrijving||getCatLabel(latest.categorie));
 
+  // Reset to the latest session on a fresh open (preserveOpen not set), or if
+  // the previously-open session no longer exists (e.g. it got deleted). A
+  // deliberate collapse-to-nothing (_studyHistOpenId===null, set by
+  // toggleStudyHistSession re-clicking the open row) is a valid state on its
+  // own and must NOT be treated as "unset" here, or every collapse would
+  // immediately snap back open on rebuild.
+  if (!preserveOpen) {
+    _studyHistOpenId = latest.id;
+  } else if (_studyHistOpenId != null && !sorted.some(function(s){ return String(s.id)===String(_studyHistOpenId); })) {
+    _studyHistOpenId = latest.id;
+  }
+  var openEntry = (_studyHistOpenId!=null && sorted.find(function(s){ return String(s.id)===String(_studyHistOpenId); })) || latest;
+
   var h = '<div style="padding:16px">';
   h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:2px">';
   h += '<div style="font-size:16px;font-weight:700">'+titleTxt+'</div>';
-  h += '<button onclick="_entryDetailReopen=null;closeModals()" style="border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px">&times;</button>';
+  h += '<button onclick="_entryDetailReopen=null;_studyHistOpenId=null;_studyHistCtx=null;closeModals()" style="border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px">&times;</button>';
   h += '</div>';
   h += '<div style="font-size:13px;color:var(--text2);margin-bottom:12px">'+latest.cursistNaam+'</div>';
 
@@ -28092,28 +28154,45 @@ function openStudieContactHistoryModal(lesCode, cursistKey) {
     h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px">'+sessionsLbl+' ('+sorted.length+')</div>';
     h += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">';
     sorted.forEach(function(s, i) {
-      var isLast = i === sorted.length-1;
-      h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border-radius:6px'+(isLast?';border:1px solid var(--brand)':'')+'">';
-      h += '<span style="width:18px;height:18px;border-radius:50%;background:'+(isLast?'var(--brand)':'var(--border)')+';color:'+(isLast?'#fff':'var(--text3)')+';font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</span>';
+      var isOpen = String(s.id) === String(_studyHistOpenId);
+      h += '<div onclick="toggleStudyHistSession('+ssIdArg(s.id)+')" style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border-radius:6px;cursor:pointer'+(isOpen?';border:1px solid var(--brand)':'')+'">';
+      h += '<span style="width:18px;height:18px;border-radius:50%;background:'+(isOpen?'var(--brand)':'var(--border)')+';color:'+(isOpen?'#fff':'var(--text3)')+';font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</span>';
       h += '<span style="flex:1;font-size:13px">'+(s.approxDate?(s.datum||'').slice(0,4):formatDate(s.datum))+'</span>';
       if (parseFloat(s.uren) > 0) h += '<span style="font-size:12px;color:var(--text3)">'+parseFloat(s.uren)+t('hours_abbr')+'</span>';
       h += '</div>';
-      if (s.opmerking) h += '<div style="font-size:12px;color:var(--text3);padding:0 8px 4px 34px;white-space:pre-wrap">'+s.opmerking+'</div>';
+      if (isOpen) {
+        // Full editable detail (met wie / thema / uren / afgerond / notitie)
+        // right under whichever session was tapped - later rows render below
+        // this, so choosing an earlier session pushes the rest of the list
+        // down instead of the detail staying pinned to the bottom.
+        h += '<div style="padding:2px 0 4px">'+buildEntryDetailInnerHtml(s)+'</div>';
+      } else if (s.opmerking) {
+        h += '<div style="font-size:12px;color:var(--text3);padding:0 8px 4px 34px;white-space:pre-wrap">'+s.opmerking+'</div>';
+      }
     });
     h += '</div>';
+  } else {
+    h += buildEntryDetailInnerHtml(latest);
   }
-
-  h += buildEntryDetailInnerHtml(latest);
 
   var gotoContactLbl = tMap({nl:'Naar contact',en:'Go to contact',es:'Ir al contacto',fr:'Voir le contact',de:'Zum Kontakt',ro:'Către contact',hu:'A kapcsolathoz',ru:'К контакту',it:'Vai al contatto',pt:'Ir para o contacto'});
   h += '<div style="display:flex;gap:8px;margin-top:14px">';
   if (cuId) {
-    h += '<button class="btn" onclick="_entryDetailReopen=null;closeModals();openCursistDetail('+ssIdArg(cuId)+')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13"><use href="#ico-user"/></svg>'+gotoContactLbl+'</button>';
+    h += '<button class="btn" onclick="_entryDetailReopen=null;_studyHistOpenId=null;_studyHistCtx=null;closeModals();openCursistDetail('+ssIdArg(cuId)+')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13"><use href="#ico-user"/></svg>'+gotoContactLbl+'</button>';
   }
-  h += '<button class="btn primary" onclick="_entryDetailReopen=null;closeModals();openEditEntryModal('+ssIdArg(latest.id)+',true)" style="flex:1">'+t('edit_btn')+'</button>';
+  h += '<button class="btn primary" onclick="_entryDetailReopen=null;_studyHistOpenId=null;_studyHistCtx=null;closeModals();openEditEntryModal('+ssIdArg(openEntry.id)+',true)" style="flex:1">'+t('edit_btn')+'</button>';
   h += '</div>';
   h += '</div>';
   showModal(h);
+}
+// Accordion toggle for the session rows above - tapping the currently-open
+// row collapses it back to just the date/hours line (nothing left expanded);
+// tapping any other row opens that one instead (single-open, matches the rest
+// of the app's accordion sections).
+function toggleStudyHistSession(entryId) {
+  if (!_studyHistCtx) return;
+  _studyHistOpenId = (String(_studyHistOpenId)===String(entryId)) ? null : entryId;
+  openStudieContactHistoryModal(_studyHistCtx.lesCode, _studyHistCtx.cursistKey, true);
 }
 
 // Bulk-add contacts already known to have received a given Bible study
