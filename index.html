@@ -16089,6 +16089,33 @@ function openQuickRepeatModal(last, prefillDate){
       +'</select>'
       +'<label style="display:flex;align-items:flex-start;gap:8px;margin:8px 0 4px;cursor:pointer"><input id="qr-thema-completed" type="checkbox" '+(last.themaCompleted===false?'':'checked')+' style="width:16px;height:16px;flex-shrink:0;margin-top:2px"><span><span style="font-size:13px;display:block">'+t('thema_completed_lbl')+'</span><span style="font-size:11px;color:var(--text3)">'+t('thema_completed_hint')+'</span></span></label>';
   }
+  // "Meerdere studenten" (same feature as the wizard's cursist step and
+  // openEditEntryModal, task #901) - this repeat popup previously had no way
+  // to add companions to a repeated group Bible study at all, so repeating a
+  // session that was given to several people at once silently dropped back
+  // to a single attendee every time. Pre-check whichever contacts were
+  // already linked to the source entry via groupStudyId (siblings sharing
+  // that id) so repeating an existing group study starts from its real
+  // membership instead of blank.
+  var qrMultiHtml='';
+  if(last.categorie==='Bijbelstudie geven'&&!isLid){
+    var qrExtraIds=(last.groupStudyId?db.entries.filter(function(x){return x.groupStudyId===last.groupStudyId&&x.id!==last.id;}):[])
+      .map(function(x){return String(x.cursistId);}).filter(Boolean);
+    var qrMultiChecked=qrExtraIds.length>0;
+    var qrMultiLbl=tMap({nl:'Meerdere studenten',en:'Multiple students',es:'Varios estudiantes',fr:'Plusieurs étudiants',de:'Mehrere Studenten',ro:'Mai mulți studenți',hu:'Több tanuló',ru:'Несколько учеников',it:'Più studenti',pt:'Vários estudantes'});
+    var qrMultiHint=tMap({nl:'Waren er nog anderen bij deze studie? Vink hen ook aan — elk krijgt zijn eigen aantekening in de studiegeschiedenis.',en:'Was anyone else present at this study? Check them too — each gets their own note in the study history.',es:'¿Había alguien más en este estudio? Márcalos también — cada uno recibe su propia nota en el historial de estudios.',fr:"Quelqu'un d'autre était présent à cette étude ? Cochez-les aussi — chacun reçoit sa propre note dans l'historique.",de:'War noch jemand bei diesem Studium dabei? Auch sie ankreuzen — jeder bekommt einen eigenen Eintrag im Studienverlauf.',ro:'Au mai fost și alții la acest studiu? Bifați-i și pe ei — fiecare primește propria notă în istoricul studiilor.',hu:'Volt más is jelen ezen a tanulmányon? Őket is jelöld be — mindenki saját bejegyzést kap a tanulmánytörténetben.',ru:'Был ли кто-то ещё на этом изучении? Отметьте их тоже — каждый получит свою запись в истории изучений.',it:"C'era qualcun altro a questo studio? Seleziona anche loro — ognuno riceve la propria nota nella cronologia.",pt:'Havia mais alguém neste estudo? Marque-os também — cada um recebe sua própria nota no histórico.'});
+    var qrMultiRow=function(cu){return '<label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer"><input type="checkbox" class="qr-multi-cb" value="'+cu.id+'" '+(qrExtraIds.indexOf(String(cu.id))>=0?'checked':'')+' style="width:16px;height:16px;flex-shrink:0"><span style="font-size:13px">'+cu.naam+'</span></label>';};
+    var qrMultiGroups=groupCursistenByLid(db.cursisten);
+    var qrMultiSubtitle=function(lbl){return '<div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.02em;margin:8px 0 2px">'+lbl+'</div>';};
+    var qrCheckList='';
+    if(qrMultiGroups.nietLeden.length)qrCheckList+=qrMultiSubtitle(nietLedenSectionLbl())+qrMultiGroups.nietLeden.map(qrMultiRow).join('');
+    if(qrMultiGroups.leden.length)qrCheckList+=qrMultiSubtitle(ledenSectionLbl())+qrMultiGroups.leden.map(qrMultiRow).join('');
+    qrMultiHtml='<label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer"><input type="checkbox" id="qr-multi-toggle" onchange="toggleQrMultiStudent()" '+(qrMultiChecked?'checked':'')+' style="width:16px;height:16px;flex-shrink:0"><span style="font-size:13px;font-weight:600">'+qrMultiLbl+'</span></label>'
+      +'<div id="qr-multi-wrap" style="display:'+(qrMultiChecked?'block':'none')+';margin-top:6px;padding:10px 12px;background:var(--surface2);border-radius:var(--r-sm)">'
+      +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px">'+qrMultiHint+'</div>'
+      +'<div style="max-height:180px;overflow-y:auto">'+(qrCheckList||'<div style="font-size:12px;color:var(--text3)">'+t('wizard_no_contact')+'</div>')+'</div>'
+      +'</div>';
+  }
   var moreLbl=tMap({nl:'Meer aanpassen (categorie, km, notitie)',en:'More options (category, km, note)',es:'Más opciones (categoría, km, nota)',fr:'Plus d\'options (catégorie, km, note)',de:'Weitere Optionen (Kategorie, Km, Notiz)',ro:'Mai multe opțiuni (categorie, km, notă)',hu:'További beállítások (kategória, km, jegyzet)',ru:'Дополнительно (категория, км, заметка)',it:'Altre opzioni (categoria, km, nota)',pt:'Mais opções (categoria, km, nota)'});
   var dateLbl=tMap({nl:'Datum',en:'Date',es:'Fecha',fr:'Date',de:'Datum',ro:'Data',hu:'Dátum',ru:'Дата',it:'Data',pt:'Data'});
   // The whole point of this popup: reusing a past entry should be a
@@ -16134,6 +16161,7 @@ function openQuickRepeatModal(last, prefillDate){
   h+='<span class="form-label">'+t('wizard_desc_lbl')+'</span>';
   h+='<input type="text" id="qr-omschrijving" value="'+(last.omschrijving?String(last.omschrijving).replace(/"/g,'&quot;'):'')+'" style="margin-bottom:8px">';
   h+=themaBlock;
+  h+=qrMultiHtml;
   h+='<span class="form-label">'+t('wizard_travel_hours')+'</span><select id="qr-reisuren" class="hour-picker" style="margin-bottom:8px">'+buildHourOptions(last.reisUren||0)+'</select>';
   h+='<span class="form-label">Km</span><input type="number" id="qr-km" value="'+(last.km||'')+'" min="0" placeholder="0" style="margin-bottom:8px">';
   h+='<span class="form-label">'+t('wizard_note')+'</span>';
@@ -16205,6 +16233,16 @@ function qrTimeManualEdit(){
   var cb=document.getElementById('qr-time-auto');
   if(cb&&cb.checked)cb.checked=false;
 }
+// "Meerdere studenten" toggle for the quick-repeat popup (see the checkbox
+// block built in openQuickRepeatModal above) - same show/hide + clear-on-
+// uncheck behavior as the wizard's toggleWizMultiStudent / the edit modal's
+// toggleEeMultiStudent, just scoped to the qr- id/class prefix.
+function toggleQrMultiStudent(){
+  var cb=document.getElementById('qr-multi-toggle'),wrap=document.getElementById('qr-multi-wrap');
+  if(!cb||!wrap)return;
+  wrap.style.display=cb.checked?'block':'none';
+  if(!cb.checked)wrap.querySelectorAll('.qr-multi-cb').forEach(function(el){el.checked=false;});
+}
 function saveQuickRepeat(sourceEntryId){
   // Clones the source entry wholesale (so cursistId/cursistNaam/gemeente/
   // omschrijving/kosten/etc all carry over automatically for ANY entry
@@ -16266,6 +16304,20 @@ function saveQuickRepeat(sourceEntryId){
   // that's a deliberate choice and takes precedence.
   if(omsch&&omsch.value!==origOmschrijving)newEntry.omschrijving=omsch.value;
   if(themaCompleted)newEntry.themaCompleted=themaCompleted.checked;
+  // "Meerdere studenten" fan-out (see the checkbox block in
+  // openQuickRepeatModal above, task #901) - mirrors the wizard's own
+  // wSave() group-study block: the extra attendees get their own linked
+  // entry for contact-history purposes, with uren/km/kosten/travel zeroed
+  // out so Rapport totals and reimbursements aren't multiplied by the group
+  // size. Only meaningful for the already-happened path below (the future/
+  // planned branch further down doesn't carry a groupStudyId concept, same
+  // as the main wizard's saveDraftAsPlanned).
+  var qrMultiToggleEl=document.getElementById('qr-multi-toggle');
+  if(newEntry.categorie==='Bijbelstudie geven'&&qrMultiToggleEl&&qrMultiToggleEl.checked){
+    newEntry._qrExtraCursistIds=Array.from(document.querySelectorAll('.qr-multi-cb:checked'))
+      .map(function(cb){return cb.value;})
+      .filter(function(id){return id!==String(newEntry.cursistId);});
+  }
   if(reisuren)newEntry.reisUren=parseFloat(reisuren.value)||0;
   if(km)newEntry.km=parseFloat(km.value)||0;
   // A repeated entry dated in the future isn't something that already
@@ -16320,7 +16372,22 @@ function saveQuickRepeat(sourceEntryId){
     }
     return;
   }
+  var qrExtraCursistIds=newEntry._qrExtraCursistIds||[];
+  delete newEntry._qrExtraCursistIds;
   db.entries.push(newEntry);
+  if(qrExtraCursistIds.length){
+    var qrGroupId='grp-'+newEntry.id;
+    newEntry.groupStudyId=qrGroupId;
+    qrExtraCursistIds.forEach(function(exId){
+      var exCu=db.cursisten.find(function(c){return String(c.id)===String(exId);});
+      if(!exCu)return;
+      var companion=Object.assign({},newEntry,{id:genEntryId(),cursistId:exCu.id,cursistNaam:exCu.naam,
+        uren:0,km:0,kosten:0,reisUren:0,isAutoTravel:false,
+        groupStudyId:qrGroupId,groupStudyPrimaryId:newEntry.id});
+      touch(companion);
+      db.entries.push(companion);
+    });
+  }
   save();
   closeModals();
   if(currentScreen==='cursisten')renderCursisten();
