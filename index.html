@@ -16048,7 +16048,7 @@ function openQuickRepeatModal(last, prefillDate){
   var qrInitDate=prefillDate||ymdLocal();
   h+='<span class="form-label">'+dateLbl+'</span><input type="date" id="qr-datum" value="'+qrInitDate+'" style="margin-bottom:8px">';
   h+='<span class="form-label">'+t('wizard_time')+'</span>';
-  h+=renderTimePicker('qr-time',roundToQuarterHour());
+  h+=renderTimePicker('qr-time',roundToQuarterHour(),'qrTimeManualEdit()');
   var qrAutoTimeLbl=tMap({nl:'Huidige tijd gebruiken',en:'Use current time',es:'Usar la hora actual',fr:'Utiliser l\'heure actuelle',de:'Aktuelle Uhrzeit verwenden',ro:'Folosește ora curentă',hu:'Jelenlegi idő használata',ru:'Использовать текущее время',it:'Usa l\'ora attuale',pt:'Usar hora atual'});
   h+='<label style="display:flex;align-items:center;gap:6px;margin:4px 0 8px;cursor:pointer;font-size:11.5px;color:var(--text3)"><input type="checkbox" id="qr-time-auto" checked onchange="qrToggleAutoTime(this.checked)" style="width:15px;height:15px;flex-shrink:0">'+qrAutoTimeLbl+'</label>';
   h+='<span class="form-label">Uren</span><select id="qr-uren" class="hour-picker" style="width:100%;display:flex;align-items:center">'+buildHourOptions(last.uren||1)+'</select>';
@@ -16095,9 +16095,15 @@ function openQuickRepeatModal(last, prefillDate){
   showModalCentered(h);
 }
 // Checked: fills the time picker with the current time (rounded to the
-// nearest quarter hour). Unchecked: clears it, since not every repeated
-// activity should get a time stamped on it. Manually assigning .value on
-// the picker's <select> elements doesn't fire their change event, so
+// nearest quarter hour). Unchecked: previously this also cleared the picker
+// back to blank, on the theory that not every repeated activity should get
+// a time stamped on it - but in practice that meant unchecking after
+// picking a time (e.g. to "lock in" a manual edit) wiped out exactly the
+// value the person wanted to keep, forcing them to re-enter it from
+// scratch. Now unchecking just stops the picker from tracking "now" going
+// forward and leaves whatever time is currently shown in place, so it can
+// be used as-is or tweaked further. Manually assigning .value on the
+// picker's <select> elements doesn't fire their change event, so
 // _syncTimePicker must be called explicitly afterwards to sync the hidden
 // canonical HH:MM input the save logic actually reads.
 function qrToggleAutoTime(checked){
@@ -16113,12 +16119,25 @@ function qrToggleAutoTime(checked){
       hEl.value=String(h24);
     }
     mEl.value=String(m);
-  }else{
-    hEl.value='';
-    mEl.value='';
-    if(apEl)apEl.value='am';
+    _syncTimePicker('qr-time');
   }
-  _syncTimePicker('qr-time');
+  // Unchecked: no-op - leave the hour/minute/am-pm selects exactly as they
+  // are. The hidden field already matches them (kept in sync on every
+  // select change via qrTimeManualEdit below), so there's nothing to redo.
+}
+// Wired into the qr-time hour/minute/am-pm selects' onchange (see
+// renderTimePicker below) IN ADDITION TO the normal _syncTimePicker call -
+// editing the time by hand is a clear signal the person wants THIS time,
+// not "whatever the clock says when I hit save", so the "Huidige tijd
+// gebruiken" checkbox should stop claiming that's still what's happening.
+// Purely cosmetic (saveQuickRepeat always reads the hidden qr-time field
+// directly, checkbox state doesn't gate anything at save time) but leaving
+// it checked after a manual edit was misleading enough that people were
+// unchecking it themselves to "confirm" their edit - which is exactly what
+// used to wipe the field back to blank above.
+function qrTimeManualEdit(){
+  var cb=document.getElementById('qr-time-auto');
+  if(cb&&cb.checked)cb.checked=false;
 }
 function saveQuickRepeat(sourceEntryId){
   // Clones the source entry wholesale (so cursistId/cursistNaam/gemeente/
@@ -22286,7 +22305,8 @@ function formatTimeDisplay(hhmm){
 // plus an AM/PM select only when isTimeFormat12h() is true), and keeps a
 // hidden input with the given id holding the composed "HH:MM" 24h value, so
 // every existing call site that reads #<id>.value keeps working unchanged.
-function renderTimePicker(id,value){
+function renderTimePicker(id,value,extraOnChange){
+  var onchg="_syncTimePicker('"+id+"')"+(extraOnChange?';'+extraOnChange:'');
   var parts=(value||'').split(':');
   var h=parseInt(parts[0],10); if(isNaN(h))h=null;
   var m=parseInt(parts[1],10); if(isNaN(m))m=null;
@@ -22308,12 +22328,12 @@ function renderTimePicker(id,value){
   var apHtml='';
   if(is12){
     var ap=(h===null)?'':(h>=12?'pm':'am');
-    apHtml='<select id="'+id+'_ap" onchange="_syncTimePicker(\''+id+'\')" style="width:auto"><option value="am"'+(ap==='am'?' selected':'')+'>AM</option><option value="pm"'+(ap==='pm'?' selected':'')+'>PM</option></select>';
+    apHtml='<select id="'+id+'_ap" onchange="'+onchg+'" style="width:auto"><option value="am"'+(ap==='am'?' selected':'')+'>AM</option><option value="pm"'+(ap==='pm'?' selected':'')+'>PM</option></select>';
   }
   return '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
-    +'<select id="'+id+'_h" onchange="_syncTimePicker(\''+id+'\')" style="width:auto">'+hOpts+'</select>'
+    +'<select id="'+id+'_h" onchange="'+onchg+'" style="width:auto">'+hOpts+'</select>'
     +'<span style="color:var(--text3)">:</span>'
-    +'<select id="'+id+'_m" onchange="_syncTimePicker(\''+id+'\')" style="width:auto">'+mOpts+'</select>'
+    +'<select id="'+id+'_m" onchange="'+onchg+'" style="width:auto">'+mOpts+'</select>'
     +apHtml
     +'<input type="hidden" id="'+id+'" value="'+escapeHtml(value||'')+'">'
   +'</div>';
