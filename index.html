@@ -30006,21 +30006,36 @@ function loadDemoData(){
   function addDays(base,n){var d=new Date(base);d.setDate(d.getDate()+n);return d;}
   function fmt(d){return ymdLocal(d);}
 
+  // ---- Translated demo text: demo data is meant to show off the app in
+  // whatever language it's currently running in, so every note/description/
+  // task/prayer below (anything that isn't just a person's name or a plain
+  // Dutch street address, which are fine left as-is like any other proper
+  // noun) is built from a tMap() table instead of hardcoded Dutch - a
+  // Spanish-language session should show Spanish demo notes, not raw Dutch
+  // text, same as the Bible study lesson names above.
+  var dtInterested=tMap({nl:'Geïnteresseerd in de sabbat',en:'Interested in the Sabbath',es:'Interesado en el sábado',fr:'Intéressé par le sabbat',de:'Interessiert am Sabbat',ro:'Interesat de Sabat',hu:'Érdeklődik a szombat iránt',ru:'Интересуется субботой',it:'Interessato al sabato',pt:'Interessado no sábado'});
+  var dtCommunionQ=tMap({nl:'Vragen over het avondmaal',en:"Questions about the Lord's Supper",es:'Preguntas sobre la Santa Cena',fr:'Questions sur la sainte cène',de:'Fragen zum Abendmahl',ro:'Întrebări despre Cina Domnului',hu:'Kérdések az úrvacsoráról',ru:'Вопросы о Вечере Господней',it:'Domande sulla Cena del Signore',pt:'Perguntas sobre a Ceia do Senhor'});
+  var dtNewSabbath=tMap({nl:'Komt sinds kort elke sabbat',en:'Has started attending every Sabbath',es:'Ha empezado a asistir cada sábado',fr:'Vient chaque sabbat depuis peu',de:'Kommt seit kurzem jeden Sabbat',ro:'A început să vină în fiecare Sabat',hu:'Nemrég kezdett minden szombaton eljönni',ru:'Недавно начала приходить каждую субботу',it:'Viene ogni sabato da poco',pt:'Começou a vir todo sábado recentemente'});
+  var dtOtherWorker=tMap({nl:'Wordt momenteel vooral door een andere werker bezocht.',en:'Currently mainly visited by another worker.',es:'Actualmente la visita principalmente otro obrero.',fr:'Actuellement visitée principalement par un autre ouvrier.',de:'Wird derzeit hauptsächlich von einem anderen Mitarbeiter besucht.',ro:'În prezent este vizitată în principal de un alt lucrător.',hu:'Jelenleg főleg egy másik munkás látogatja.',ru:'В настоящее время её посещает в основном другой работник.',it:'Attualmente visitata principalmente da un altro operatore.',pt:'Atualmente visitada principalmente por outro obreiro.'});
+  var dtCorneliaChild=tMap({nl:'Kind van Cornelia',en:"Cornelia's child",es:'Hijo de Cornelia',fr:'Enfant de Cornelia',de:'Kind von Cornelia',ro:'Copilul Corneliei',hu:'Cornelia gyermeke',ru:'Ребёнок Корнелии',it:'Figlio di Cornelia',pt:'Filho de Cornelia'});
+  var dtAlmostDone=tMap({nl:'Bijna klaar met de studiereeks, wil zich laten dopen.',en:'Almost finished with the study series, wants to be baptized.',es:'Casi termina la serie de estudios, quiere bautizarse.',fr:"Presque terminé la série d'études, souhaite être baptisée.",de:'Fast fertig mit der Studienreihe, möchte sich taufen lassen.',ro:'Aproape a terminat seria de studii, dorește să fie botezată.',hu:'Majdnem befejezte a tanulmánysorozatot, meg szeretne keresztelkedni.',ru:'Почти закончила серию уроков, хочет креститься.',it:'Quasi terminata la serie di studi, vuole essere battezzata.',pt:'Quase terminando a série de estudos, quer ser batizada.'});
+  var dtBaptismPlanned=tMap({nl:'Doopdatum gepland voor volgend kwartaal.',en:'Baptism date planned for next quarter.',es:'Fecha de bautismo planeada para el próximo trimestre.',fr:'Date de baptême prévue pour le trimestre prochain.',de:'Taufdatum für das nächste Quartal geplant.',ro:'Data botezului este planificată pentru trimestrul următor.',hu:'A keresztelés dátuma a következő negyedévre tervezve.',ru:'Дата крещения запланирована на следующий квартал.',it:'Data del battesimo prevista per il prossimo trimestre.',pt:'Data de batismo planejada para o próximo trimestre.'});
+  var dtWalkingTrouble=tMap({nl:'Slecht ter been, waardeert huisbezoek erg.',en:'Has trouble walking, really appreciates home visits.',es:'Tiene dificultad para caminar, aprecia mucho las visitas a domicilio.',fr:'A des difficultés à marcher, apprécie beaucoup les visites à domicile.',de:'Hat Schwierigkeiten beim Gehen, schätzt Hausbesuche sehr.',ro:'Are dificultăți de mers, apreciază foarte mult vizitele la domiciliu.',hu:'Nehezen jár, nagyon értékeli az otthoni látogatásokat.',ru:'Испытывает трудности при ходьбе, очень ценит визиты на дом.',it:'Ha difficoltà a camminare, apprezza molto le visite a domicilio.',pt:'Tem dificuldade para andar, aprecia muito as visitas domiciliares.'});
   // ---- Contacts: one at every stage of the contact->member journey, plus
   // the demographic tags (youth/elderly/child) and the less common fields
   // (extra care, paused, another worker's responsibility) so the Contacts
   // tab, its groupings and the Follow-up card all have something real. ----
   var cid=9001;
-  var cThomas={id:cid++,naam:'Thomas van Berg',voornaam:'Thomas',achternaam:'van Berg',type:'cursist',adres:'Bergstraat 12',postcode:'3512 AB',plaats:'Utrecht',land:'Nederland',tel:'06-12345678',contactFrequency:'weekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'beginner',highlightsGeschiedenis:'',opmerking:'Geïnteresseerd in de sabbat',doopkandidaat:false,personTypes:['interested'],personType:'interested',gemeente:'',status:'actief'};
-  var cMiriam={id:cid++,naam:'Miriam Santos',voornaam:'Miriam',achternaam:'Santos',type:'cursist',adres:'Rozenstraat 5',postcode:'3021 CD',plaats:'Rotterdam',land:'Nederland',tel:'06-87654321',contactFrequency:'weekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'gevorderd',highlightsGeschiedenis:'Bijna klaar met de studiereeks, wil zich laten dopen.',opmerking:'Vragen over het avondmaal',doopkandidaat:false,personTypes:['student'],personType:'student',gemeente:'',status:'actief'};
-  var cAnna={id:cid++,naam:'Anna de Groot',voornaam:'Anna',achternaam:'de Groot',type:'cursist',adres:'Molenweg 8',postcode:'1017 AB',plaats:'Amsterdam',land:'Nederland',tel:'06-22334455',contactFrequency:'biweekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'gevorderd',highlightsGeschiedenis:'',opmerking:'Komt sinds kort elke sabbat',doopkandidaat:false,personTypes:['sabbath'],personType:'sabbath',gemeente:'Immanuel Gemeente',status:'actief'};
-  var cRobert={id:cid++,naam:'Robert Jansen',voornaam:'Robert',achternaam:'Jansen',type:'cursist',adres:'Kerkplein 3',postcode:'2011 CD',plaats:'Haarlem',land:'Nederland',tel:'06-33445566',contactFrequency:'weekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'gevorderd',highlightsGeschiedenis:'Doopdatum gepland voor volgend kwartaal.',opmerking:'',doopkandidaat:true,personTypes:['doop'],personType:'doop',gemeente:'Immanuel Gemeente',status:'actief'};
+  var cThomas={id:cid++,naam:'Thomas van Berg',voornaam:'Thomas',achternaam:'van Berg',type:'cursist',adres:'Bergstraat 12',postcode:'3512 AB',plaats:'Utrecht',land:'Nederland',tel:'06-12345678',contactFrequency:'weekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'basis',highlightsGeschiedenis:'',opmerking:dtInterested,doopkandidaat:false,personTypes:['interested'],personType:'interested',gemeente:'',status:'actief'};
+  var cMiriam={id:cid++,naam:'Miriam Santos',voornaam:'Miriam',achternaam:'Santos',type:'cursist',adres:'Rozenstraat 5',postcode:'3021 CD',plaats:'Rotterdam',land:'Nederland',tel:'06-87654321',contactFrequency:'weekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'gevorderd',highlightsGeschiedenis:dtAlmostDone,opmerking:dtCommunionQ,doopkandidaat:false,personTypes:['student'],personType:'student',gemeente:'',status:'actief'};
+  var cAnna={id:cid++,naam:'Anna de Groot',voornaam:'Anna',achternaam:'de Groot',type:'cursist',adres:'Molenweg 8',postcode:'1017 AB',plaats:'Amsterdam',land:'Nederland',tel:'06-22334455',contactFrequency:'biweekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'gevorderd',highlightsGeschiedenis:'',opmerking:dtNewSabbath,doopkandidaat:false,personTypes:['sabbath'],personType:'sabbath',gemeente:'Immanuel Gemeente',status:'actief'};
+  var cRobert={id:cid++,naam:'Robert Jansen',voornaam:'Robert',achternaam:'Jansen',type:'cursist',adres:'Kerkplein 3',postcode:'2011 CD',plaats:'Haarlem',land:'Nederland',tel:'06-33445566',contactFrequency:'weekly',extraZorg:false,andereWerker:false,geloof:'',niveau:'gevorderd',highlightsGeschiedenis:dtBaptismPlanned,opmerking:'',doopkandidaat:true,personTypes:['doop'],personType:'doop',gemeente:'Immanuel Gemeente',status:'actief'};
   var cElisabeth={id:cid++,naam:'Elisabeth Mulder',voornaam:'Elisabeth',achternaam:'Mulder',type:'lid',adres:'Dorpsstraat 21',postcode:'3811 AB',plaats:'Amersfoort',land:'Nederland',tel:'06-44556677',contactFrequency:'quarterly',extraZorg:false,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:'',doopkandidaat:false,personTypes:['lid'],personType:'lid',gemeente:'Immanuel Gemeente',status:'actief'};
   var cDaniel={id:cid++,naam:'Daniël Visser',voornaam:'Daniël',achternaam:'Visser',type:'lid',adres:'Schoolstraat 9',postcode:'7511 AB',plaats:'Enschede',land:'Nederland',tel:'06-55667788',contactFrequency:'monthly',extraZorg:false,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:'',doopkandidaat:false,personTypes:['jeugd','lid'],personType:'jeugd',gemeente:'Hoop Gemeente',status:'actief'};
-  var cCornelia={id:cid++,naam:'Cornelia Bakker',voornaam:'Cornelia',achternaam:'Bakker',type:'lid',adres:'Julianalaan 44',postcode:'7521 CD',plaats:'Enschede',land:'Nederland',tel:'06-66778899',contactFrequency:'biweekly',extraZorg:true,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'Slecht ter been, waardeert huisbezoek erg.',opmerking:'',doopkandidaat:false,personTypes:['elderly','lid'],personType:'elderly',gemeente:'Hoop Gemeente',status:'actief'};
+  var cCornelia={id:cid++,naam:'Cornelia Bakker',voornaam:'Cornelia',achternaam:'Bakker',type:'lid',adres:'Julianalaan 44',postcode:'7521 CD',plaats:'Enschede',land:'Nederland',tel:'06-66778899',contactFrequency:'biweekly',extraZorg:true,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:dtWalkingTrouble,opmerking:'',doopkandidaat:false,personTypes:['elderly','lid'],personType:'elderly',gemeente:'Hoop Gemeente',status:'actief'};
   var cDavid={id:cid++,naam:'David Kowalski',voornaam:'David',achternaam:'Kowalski',type:'cursist',adres:'Kerkweg 3',postcode:'1096 AB',plaats:'Amsterdam',land:'Nederland',tel:'06-11223344',contactFrequency:'monthly',extraZorg:true,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:'',doopkandidaat:false,personTypes:['contact'],personType:'contact',gemeente:'',status:'actief'};
-  var cSarah={id:cid++,naam:'Sarah de Boer',voornaam:'Sarah',achternaam:'de Boer',type:'cursist',adres:'Lindelaan 17',postcode:'2311 AB',plaats:'Leiden',land:'Nederland',tel:'06-77889900',contactFrequency:'',extraZorg:false,andereWerker:true,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:'Wordt momenteel vooral door een andere werker bezocht.',doopkandidaat:false,personTypes:['contact'],personType:'contact',gemeente:'',status:'gepauzeerd'};
-  var cLucas={id:cid++,naam:'Lucas de Wit',voornaam:'Lucas',achternaam:'de Wit',type:'lid',adres:'Julianalaan 44',postcode:'7521 CD',plaats:'Enschede',land:'Nederland',tel:'',contactFrequency:'',extraZorg:false,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:'Kind van Cornelia',doopkandidaat:false,personTypes:['child'],personType:'child',gemeente:'Hoop Gemeente',status:'actief'};
+  var cSarah={id:cid++,naam:'Sarah de Boer',voornaam:'Sarah',achternaam:'de Boer',type:'cursist',adres:'Lindelaan 17',postcode:'2311 AB',plaats:'Leiden',land:'Nederland',tel:'06-77889900',contactFrequency:'',extraZorg:false,andereWerker:true,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:dtOtherWorker,doopkandidaat:false,personTypes:['contact'],personType:'contact',gemeente:'',status:'gepauzeerd'};
+  var cLucas={id:cid++,naam:'Lucas de Wit',voornaam:'Lucas',achternaam:'de Wit',type:'lid',adres:'Julianalaan 44',postcode:'7521 CD',plaats:'Enschede',land:'Nederland',tel:'',contactFrequency:'',extraZorg:false,andereWerker:false,geloof:'',niveau:'',highlightsGeschiedenis:'',opmerking:dtCorneliaChild,doopkandidaat:false,personTypes:['child'],personType:'child',gemeente:'Hoop Gemeente',status:'actief'};
   db.cursisten=[cThomas,cMiriam,cAnna,cRobert,cElisabeth,cDaniel,cCornelia,cDavid,cSarah,cLucas];
 
   // ---- Logbook entries: a full year of activity spread across every
@@ -30040,6 +30055,11 @@ function loadDemoData(){
   var themas=THEMAS.filter(function(t){return t[0]!=='Vrij onderwerp';}).slice(0,6);
   var themaIdx=0;
   function nextThema(){var th=themas[themaIdx%themas.length];themaIdx++;return th;}
+  var dtToPrefix=tMap({nl:'Naar ',en:'To ',es:'A ',fr:'Vers ',de:'Nach ',ro:'Spre ',hu:'Úticél: ',ru:'В ',it:'A ',pt:'Para '});
+  var dtUpdateReport=tMap({nl:'Rapportage bijwerken',en:'Update report',es:'Actualizar informe',fr:'Mettre à jour le rapport',de:'Bericht aktualisieren',ro:'Actualizare raport',hu:'Jelentés frissítése',ru:'Обновление отчёта',it:'Aggiornare il rapporto',pt:'Atualizar relatório'});
+  var dtTeamMeeting=tMap({nl:'Teamvergadering',en:'Team meeting',es:'Reunión de equipo',fr:"Réunion d'équipe",de:'Teambesprechung',ro:'Ședință de echipă',hu:'Csapatmegbeszélés',ru:'Собрание команды',it:'Riunione di squadra',pt:'Reunião de equipe'});
+  var dtLitStand=tMap({nl:'Kramenstand',en:'Literature stand',es:'Puesto de literatura',fr:'Stand de littérature',de:'Literaturstand',ro:'Stand de literatură',hu:'Irodalmi stand',ru:'Стенд с литературой',it:'Banchetto di letteratura',pt:'Estande de literatura'});
+  var dtConversations=tMap({nl:'5 gesprekken',en:'5 conversations',es:'5 conversaciones',fr:'5 conversations',de:'5 Gespräche',ro:'5 conversații',hu:'5 beszélgetés',ru:'5 бесед',it:'5 conversazioni',pt:'5 conversas'});
   for(var w=51;w>=0;w--){
     var wk=addDays(today,-7*w);
     var stu=studyContacts[w%studyContacts.length];
@@ -30052,7 +30072,7 @@ function loadDemoData(){
       var visitTargets=[cCornelia,cDavid,cRobert];
       var visitC=visitTargets[Math.floor(w/2)%visitTargets.length];
       entries.push({datum:fmt(addDays(wk,-1)),tijd:'14:00',categorie:'Bezoek',aard:'Gemeentebediening',omschrijving:'',thema:'',themacode:'',cursistId:visitC.id,cursistNaam:visitC.naam,uren:1,km:14,reisUren:0.4,opmerking:''});
-      entries.push({datum:fmt(addDays(wk,-1)),tijd:'',categorie:'Vervoer',aard:'Vervoer',omschrijving:'Naar '+visitC.plaats,thema:'',themacode:'',cursistId:visitC.id,cursistNaam:visitC.naam,uren:0.4,km:14,reisUren:0.4,opmerking:''});
+      entries.push({datum:fmt(addDays(wk,-1)),tijd:'',categorie:'Vervoer',aard:'Vervoer',omschrijving:dtToPrefix+visitC.plaats,thema:'',themacode:'',cursistId:visitC.id,cursistNaam:visitC.naam,uren:0.4,km:14,reisUren:0.4,opmerking:''});
     }
     if(w%3===0){
       var pcTargets=[cThomas,cMiriam,cSarah];
@@ -30060,9 +30080,9 @@ function loadDemoData(){
       entries.push({datum:fmt(wk),tijd:'',categorie:'Pastoraal contact',aard:'Gemeentebediening',omschrijving:'',thema:'',themacode:'',cursistId:pc.id,cursistNaam:pc.naam,uren:0.75,km:0,reisUren:0,opmerking:''});
     }
     if(w%4===0){
-      entries.push({datum:fmt(addDays(wk,3)),tijd:'',categorie:'Administratie',aard:'Organisatie',omschrijving:'Rapportage bijwerken',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:1,km:0,reisUren:0,opmerking:''});
-      entries.push({datum:fmt(addDays(wk,3)),tijd:'19:30',categorie:'Vergaderen',aard:'Organisatie',omschrijving:'Teamvergadering',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:1.5,km:18,reisUren:0.4,opmerking:''});
-      entries.push({datum:fmt(addDays(wk,5)),tijd:'',categorie:'Evangeliseren extern',aard:'Evangelisatie',omschrijving:'Kramenstand',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:2.5,km:0,reisUren:0,opmerking:'5 gesprekken'});
+      entries.push({datum:fmt(addDays(wk,3)),tijd:'',categorie:'Administratie',aard:'Organisatie',omschrijving:dtUpdateReport,thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:1,km:0,reisUren:0,opmerking:''});
+      entries.push({datum:fmt(addDays(wk,3)),tijd:'19:30',categorie:'Vergaderen',aard:'Organisatie',omschrijving:dtTeamMeeting,thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:1.5,km:18,reisUren:0.4,opmerking:''});
+      entries.push({datum:fmt(addDays(wk,5)),tijd:'',categorie:'Evangeliseren extern',aard:'Evangelisatie',omschrijving:dtLitStand,thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:2.5,km:0,reisUren:0,opmerking:dtConversations});
     }
     if(w%13===0){
       entries.push({datum:fmt(addDays(wk,2)),tijd:'',categorie:'Commissie voorbereiden',aard:'Commissie',omschrijving:'',thema:'',themacode:'',cursistId:'',cursistNaam:'',uren:1,km:0,reisUren:0,opmerking:''});
@@ -30086,22 +30106,30 @@ function loadDemoData(){
   ];
 
   // ---- To-do list: mix of open/done, personal/work ----
+  var dtTodoBrochures=tMap({nl:'Nieuwe brochures bestellen',en:'Order new brochures',es:'Pedir nuevos folletos',fr:'Commander de nouvelles brochures',de:'Neue Broschüren bestellen',ro:'Comandă broșuri noi',hu:'Új brosúrák rendelése',ru:'Заказать новые брошюры',it:'Ordinare nuovi opuscoli',pt:'Encomendar novos folhetos'});
+  var dtTodoPresentation=tMap({nl:'Presentatie voorbereiden voor sabbatschool',en:'Prepare presentation for Sabbath school',es:'Preparar presentación para la escuela sabática',fr:"Préparer une présentation pour l'école du sabbat",de:'Präsentation für die Sabbatschule vorbereiten',ro:'Pregătește o prezentare pentru școala de Sabat',hu:'Prezentáció előkészítése a szombatiskolához',ru:'Подготовить презентацию для субботней школы',it:'Preparare una presentazione per la scuola del sabato',pt:'Preparar apresentação para a escola sabatina'});
+  var dtTodoCar=tMap({nl:'Auto laten nakijken',en:'Get the car checked',es:'Llevar el coche a revisar',fr:'Faire vérifier la voiture',de:'Auto überprüfen lassen',ro:'Duce mașina la verificat',hu:'Autó átvizsgáltatása',ru:'Проверить машину',it:"Far controllare l'auto",pt:'Levar o carro para revisão'});
+  var dtTodoCard=tMap({nl:'Verjaardagskaart sturen naar Elisabeth',en:'Send birthday card to Elisabeth',es:'Enviar tarjeta de cumpleaños a Elisabeth',fr:"Envoyer une carte d'anniversaire à Elisabeth",de:'Geburtstagskarte an Elisabeth senden',ro:'Trimite felicitare de ziua de naștere lui Elisabeth',hu:'Születésnapi lap küldése Elisabethnek',ru:'Отправить открытку на день рождения Элизабет',it:'Inviare un biglietto di compleanno a Elisabeth',pt:'Enviar cartão de aniversário para Elisabeth'});
   var tid=Date.now();
   db.todos=[
-    {id:tid++,text:'Nieuwe brochures bestellen',done:false,category:'work',createdAt:new Date().toISOString(),doneAt:null},
-    {id:tid++,text:'Presentatie voorbereiden voor sabbatschool',done:false,category:'work',createdAt:new Date().toISOString(),doneAt:null},
-    {id:tid++,text:'Auto laten nakijken',done:false,category:'personal',createdAt:new Date().toISOString(),doneAt:null},
-    {id:tid++,text:'Verjaardagskaart sturen naar Elisabeth',done:true,category:'work',createdAt:new Date(addDays(today,-3)).toISOString(),doneAt:new Date(addDays(today,-2)).toISOString()}
+    {id:tid++,text:dtTodoBrochures,done:false,category:'work',createdAt:new Date().toISOString(),doneAt:null},
+    {id:tid++,text:dtTodoPresentation,done:false,category:'work',createdAt:new Date().toISOString(),doneAt:null},
+    {id:tid++,text:dtTodoCar,done:false,category:'personal',createdAt:new Date().toISOString(),doneAt:null},
+    {id:tid++,text:dtTodoCard,done:true,category:'work',createdAt:new Date(addDays(today,-3)).toISOString(),doneAt:new Date(addDays(today,-2)).toISOString()}
   ];
 
   // ---- Prayer list: active items with some prayed-day history, plus a
   // closed one so the history modal has something to show too. ----
+  var dtPrayerMiriam=tMap({nl:'Wijsheid voor de studie met Miriam',en:'Wisdom for the study with Miriam',es:'Sabiduría para el estudio con Miriam',fr:"Sagesse pour l'étude avec Miriam",de:'Weisheit für das Studium mit Miriam',ro:'Înțelepciune pentru studiul cu Miriam',hu:'Bölcsesség a Miriammal folytatott tanulmányhoz',ru:'Мудрость для изучения с Мириам',it:'Saggezza per lo studio con Miriam',pt:'Sabedoria para o estudo com Miriam'});
+  var dtPrayerCorneliaHealth=tMap({nl:'Gezondheid van Cornelia',en:"Cornelia's health",es:'Salud de Cornelia',fr:'Santé de Cornelia',de:'Gesundheit von Cornelia',ro:'Sănătatea Corneliei',hu:'Cornelia egészsége',ru:'Здоровье Корнелии',it:'Salute di Cornelia',pt:'Saúde de Cornelia'});
+  var dtPrayerRest=tMap({nl:'Rust en herstel voor mijn gezin',en:'Rest and recovery for my family',es:'Descanso y recuperación para mi familia',fr:'Repos et rétablissement pour ma famille',de:'Ruhe und Erholung für meine Familie',ro:'Odihnă și refacere pentru familia mea',hu:'Pihenés és felépülés a családomnak',ru:'Отдых и восстановление для моей семьи',it:'Riposo e recupero per la mia famiglia',pt:'Descanso e recuperação para minha família'});
+  var dtPrayerBaptism=tMap({nl:'Doop van Robert',en:"Robert's baptism",es:'Bautismo de Robert',fr:'Baptême de Robert',de:'Taufe von Robert',ro:'Botezul lui Robert',hu:'Robert keresztelése',ru:'Крещение Роберта',it:'Battesimo di Robert',pt:'Batismo de Robert'});
   var pid=Date.now()+500;
   db.prayers=[
-    {id:pid++,text:'Wijsheid voor de studie met Miriam',category:'work',createdAt:new Date(addDays(today,-14)).toISOString(),lastPrayedDate:fmt(addDays(today,-1)),prayedDays:[fmt(addDays(today,-1)),fmt(addDays(today,-3)),fmt(addDays(today,-6))]},
-    {id:pid++,text:'Gezondheid van Cornelia',category:'work',createdAt:new Date(addDays(today,-20)).toISOString(),lastPrayedDate:fmt(today),prayedDays:[fmt(today),fmt(addDays(today,-2)),fmt(addDays(today,-9))]},
-    {id:pid++,text:'Rust en herstel voor mijn gezin',category:'personal',createdAt:new Date(addDays(today,-30)).toISOString(),lastPrayedDate:fmt(addDays(today,-4)),prayedDays:[fmt(addDays(today,-4))]},
-    {id:pid++,text:'Doop van Robert',category:'work',createdAt:new Date(addDays(today,-60)).toISOString(),lastPrayedDate:null,prayedDays:[],status:'answered',closedAt:new Date(addDays(today,-40)).toISOString(),closedDays:15,closedTimes:6}
+    {id:pid++,text:dtPrayerMiriam,category:'work',createdAt:new Date(addDays(today,-14)).toISOString(),lastPrayedDate:fmt(addDays(today,-1)),prayedDays:[fmt(addDays(today,-1)),fmt(addDays(today,-3)),fmt(addDays(today,-6))]},
+    {id:pid++,text:dtPrayerCorneliaHealth,category:'work',createdAt:new Date(addDays(today,-20)).toISOString(),lastPrayedDate:fmt(today),prayedDays:[fmt(today),fmt(addDays(today,-2)),fmt(addDays(today,-9))]},
+    {id:pid++,text:dtPrayerRest,category:'personal',createdAt:new Date(addDays(today,-30)).toISOString(),lastPrayedDate:fmt(addDays(today,-4)),prayedDays:[fmt(addDays(today,-4))]},
+    {id:pid++,text:dtPrayerBaptism,category:'work',createdAt:new Date(addDays(today,-60)).toISOString(),lastPrayedDate:null,prayedDays:[],status:'answered',closedAt:new Date(addDays(today,-40)).toISOString(),closedDays:15,closedTimes:6}
   ];
 
   save();
