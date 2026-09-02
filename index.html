@@ -29363,7 +29363,23 @@ function ssEditThema(id,el){
     save();el.textContent=v||orig;
     closeDrop();
   }
-  inp.onblur=function(){setTimeout(function(){var d=document.getElementById('ss-thema-drop');if(!d)sv();},150);};
+  // The blur-commit is deliberately deferred 150ms (not run synchronously)
+  // so a mousedown on a dropdown option finishes first and this doesn't
+  // stomp that pick with the free-text field's stale value. But that same
+  // delay is exactly what caused "fill down row N's Thema, then fill down
+  // row N+1's Thema right after, and row N goes blank again a moment
+  // later": Cmd/Ctrl+D's ssFillDown() blurs whatever cell is still open
+  // (this one) and then IMMEDIATELY does its own synchronous
+  // renderSpreadsheet(), which throws away this cell's old, now-detached
+  // `el`/`inp` - but the setTimeout above was already queued and fires
+  // ~150ms later regardless, overwriting the freshly-filled value with
+  // whatever was in `inp` back when THIS cell was first opened (typically
+  // blank, since fill-down is normally used on an empty imported row).
+  // Checking that `el` is still actually attached to the document before
+  // committing skips that stale write - if this row's cell has since been
+  // replaced by a fresh render (fill-down or any other action), there is
+  // nothing left here worth saving.
+  inp.onblur=function(){setTimeout(function(){var d=document.getElementById('ss-thema-drop');if(!d&&document.body.contains(el))sv();},150);};
   inp.onkeydown=function(ev){
     if(ev.key==='Enter'){ev.preventDefault();sv();}
     if(ev.key==='Escape'){el.textContent=orig;closeDrop();}
