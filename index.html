@@ -27493,7 +27493,12 @@ function renderStudieRow(les, stats) {
   }
   h += '</div>';
   // Contacts section
+  var studieAddContactsLbl = tMap({nl:'+ Contacten toevoegen',en:'+ Add contacts',es:'+ Añadir contactos',fr:'+ Ajouter des contacts',de:'+ Kontakte hinzufügen',ro:'+ Adaugă contacte',hu:'+ Kapcsolatok hozzáadása',ru:'+ Добавить контакты',it:'+ Aggiungi contatti',pt:'+ Adicionar contactos'});
   if(stats.actueel.length || stats.voltooid.length) {
+    // Small tap target next to the existing lists, so a study that already
+    // has contacts can still get more backfilled (e.g. a contact you know
+    // received it in a group session that never got individually logged).
+    h += '<div style="text-align:right;margin-bottom:4px"><span onclick="openStudieBackfillModal(\''+les.code+'\')" style="font-size:10px;font-weight:600;color:var(--brand);cursor:pointer">'+studieAddContactsLbl+'</span></div>';
     if(stats.actueel.length) {
       h += '<div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:6px">&#128336; '+t('studie_current')+' ('+stats.actueel.length+')</div>';
       stats.actueel.forEach(function(c) {
@@ -27517,7 +27522,11 @@ function renderStudieRow(les, stats) {
       h += '</div>';
     }
   } else {
-    h += '<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">'+t('studie_no_contacts')+'</div>';
+    // Tapping this empty-state line itself opens the bulk-add popup - the
+    // most natural place to add contacts who already had this study, since
+    // that's exactly the state it's in right now (task from Gabriel: "the
+    // no-contacts text could be clickable so I can select the contacts").
+    h += '<div onclick="openStudieBackfillModal(\''+les.code+'\')" style="font-size:12px;color:var(--brand);text-align:center;padding:8px 0;cursor:pointer;text-decoration:underline;text-underline-offset:2px">'+t('studie_no_contacts')+' &middot; '+studieAddContactsLbl+'</div>';
   }
   h += '</div>';
   h += '</div>';
@@ -27533,12 +27542,126 @@ function renderStudieContact(c, status) {
   // buildEntryDetailInnerHtml) instead of the generic contact page, so a
   // study wrongly showing as "voltooid" here can be fixed on the spot
   // without hunting for it in the contact's full history first.
+  // approxDate entries (added via "add contacts who already received this
+  // study, exact date unknown") only show the year here rather than a
+  // fake-precise full date.
+  var dateLabel = c.approxDate ? (c.datumYear||c.datum) : c.datum;
   var h = '<div style="display:flex;align-items:center;padding:5px 8px;background:var(--surface2);border-radius:6px;margin-bottom:4px;cursor:pointer" onclick="openEntryDetailModal('+ssIdArg(c.entryId)+')">';
   h += dot;
   h += '<span style="font-size:13px;font-weight:500;flex:1">'+c.naam+'</span>';
-  h += '<span style="font-size:11px;color:var(--text3)">'+c.datum+'</span>';
+  h += '<span style="font-size:11px;color:var(--text3)">'+dateLabel+'</span>';
   h += '</div>';
   return h;
+}
+
+// Bulk-add contacts already known to have received a given Bible study
+// lesson, for when the exact session was never individually logged (e.g.
+// something remembered from before this app, or a group study). Opens a
+// checklist of all contacts (already-linked ones pre-checked and disabled,
+// so status is visible at a glance) plus a date-or-just-a-year picker, and
+// creates one 0-hour "Bijbelstudie geven" entry per newly-checked contact.
+function openStudieBackfillModal(lesCode) {
+  var lesRaw = STUDIE_DATA.find(function(l){return l.code===lesCode;});
+  if(!lesRaw) return;
+  var stats = getStudieStats(lesCode);
+  var linkedIds = {};
+  stats.voltooid.concat(stats.actueel).forEach(function(c) {
+    if(c.entryId!=null) {
+      var e = db.entries.find(function(x){return x.id==c.entryId;});
+      if(e && e.cursistId!=null) linkedIds[String(e.cursistId)] = true;
+    }
+  });
+  var title = tMap({nl:'Contacten toevoegen die deze les al ontvingen',en:'Add contacts who already received this lesson',es:'Añadir contactos que ya recibieron esta lección',fr:'Ajouter des contacts ayant déjà reçu cette leçon',de:'Kontakte hinzufügen, die diese Lektion bereits erhalten haben',ro:'Adaugă contacte care au primit deja această lecție',hu:'Adj hozzá kapcsolatokat, akik már megkapták ezt a leckét',ru:'Добавить контакты, которые уже получили этот урок',it:'Aggiungi contatti che hanno già ricevuto questa lezione',pt:'Adicionar contactos que já receberam esta lição'});
+  var hint = tMap({nl:'Voor als je weet dat iemand deze les al heeft gehad, maar niet meer precies wanneer. Kies een datum of alleen een jaar.',en:"For when you know someone already had this lesson, but not exactly when. Pick a date or just a year.",es:'Para cuando sabes que alguien ya recibió esta lección, pero no exactamente cuándo. Elige una fecha o solo un año.',fr:"Pour quand vous savez que quelqu'un a déjà reçu cette leçon, mais pas exactement quand. Choisissez une date ou juste une année.",de:'Für den Fall, dass du weißt, dass jemand diese Lektion bereits hatte, aber nicht genau wann. Wähle ein Datum oder nur ein Jahr.',ro:'Pentru când știi că cineva a avut deja această lecție, dar nu exact când. Alege o dată sau doar un an.',hu:'Arra az esetre, ha tudod, hogy valaki már megkapta ezt a leckét, de nem pontosan mikor. Válassz dátumot vagy csak évet.',ru:'На случай, если вы знаете, что кто-то уже получил этот урок, но не помните точно когда. Выберите дату или только год.',it:'Per quando sai che qualcuno ha già ricevuto questa lezione, ma non esattamente quando. Scegli una data o solo un anno.',pt:'Para quando sabes que alguém já recebeu esta lição, mas não exatamente quando. Escolhe uma data ou apenas um ano.'});
+  var onlyYearLbl = tMap({nl:'Alleen jaar (geen exacte datum bekend)',en:'Year only (exact date unknown)',es:'Solo año (fecha exacta desconocida)',fr:'Année seulement (date exacte inconnue)',de:'Nur Jahr (genaues Datum unbekannt)',ro:'Doar anul (data exactă necunoscută)',hu:'Csak év (pontos dátum ismeretlen)',ru:'Только год (точная дата неизвестна)',it:'Solo anno (data esatta sconosciuta)',pt:'Apenas ano (data exata desconhecida)'});
+  var receivedLbl = tMap({nl:'Al ontvangen',en:'Already received',es:'Ya recibido',fr:'Déjà reçu',de:'Bereits erhalten',ro:'Deja primit',hu:'Már megkapta',ru:'Уже получено',it:'Già ricevuto',pt:'Já recebido'});
+  var noneAddedLbl = tMap({nl:'Selecteer minstens één contact.',en:'Select at least one contact.',es:'Selecciona al menos un contacto.',fr:'Sélectionnez au moins un contact.',de:'Wähle mindestens einen Kontakt aus.',ro:'Selectează cel puțin un contact.',hu:'Válassz ki legalább egy kapcsolatot.',ru:'Выберите хотя бы один контакт.',it:'Seleziona almeno un contatto.',pt:'Seleciona pelo menos um contacto.'});
+
+  var groups = groupCursistenByLid(db.cursisten||[]);
+  var rowHtml = function(cu) {
+    var already = !!linkedIds[String(cu.id)];
+    return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:'+(already?'default':'pointer')+';opacity:'+(already?'.55':'1')+'">'
+      +'<input type="checkbox" class="sbf-cb" value="'+cu.id+'" '+(already?'checked disabled':'')+' style="width:15px;height:15px;flex-shrink:0">'
+      +'<span style="font-size:13px;flex:1">'+escapeHtml(cu.naam||'')+'</span>'
+      +(already?'<span style="font-size:10px;color:#22863a;font-weight:600;flex-shrink:0">&#10003; '+receivedLbl+'</span>':'')
+      +'</label>';
+  };
+  var subtitleHtml = function(lbl){return '<div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.02em;margin:8px 0 3px">'+lbl+'</div>';};
+  var listHtml = '';
+  if(groups.nietLeden.length) listHtml += subtitleHtml(nietLedenSectionLbl()) + groups.nietLeden.map(rowHtml).join('');
+  if(groups.leden.length) listHtml += subtitleHtml(ledenSectionLbl()) + groups.leden.map(rowHtml).join('');
+  if(!listHtml) listHtml = '<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">'+t('wizard_no_contact')+'</div>';
+
+  var yearNow = new Date().getFullYear();
+  var yearOpts = '';
+  for(var y=yearNow;y>=yearNow-15;y--) yearOpts += '<option value="'+y+'">'+y+'</option>';
+
+  var h = '<div style="padding:16px;max-height:85vh;overflow-y:auto">';
+  h += '<div style="font-size:15px;font-weight:700;margin-bottom:4px">'+title+'</div>';
+  h += '<div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5">'+hint+'</div>';
+  h += '<div id="sbf-warn" style="display:none;font-size:11px;color:var(--red);margin-bottom:8px">'+noneAddedLbl+'</div>';
+  h += '<div style="max-height:240px;overflow-y:auto;margin-bottom:12px;padding:0 2px" id="sbf-list">'+listHtml+'</div>';
+  h += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px"><input type="checkbox" id="sbf-onlyyear" onchange="toggleSbfDateMode()" style="width:15px;height:15px;flex-shrink:0"><span style="font-size:12px">'+onlyYearLbl+'</span></label>';
+  h += '<div id="sbf-date-wrap" style="margin-bottom:12px"><span class="form-label">'+t('wizard_date')+'</span><input type="date" id="sbf-date" value="'+ymdLocal()+'" style="width:100%"></div>';
+  h += '<div id="sbf-year-wrap" style="display:none;margin-bottom:12px"><span class="form-label">'+t('wizard_date')+'</span><select id="sbf-year" style="width:100%">'+yearOpts+'</select></div>';
+  h += '<div style="display:flex;gap:8px"><button class="btn" onclick="closeModals()" style="flex:1">'+t('wizard_cancel')+'</button><button class="btn primary" onclick="saveStudieBackfill(\''+lesCode+'\')" style="flex:1">'+t('save_btn')+'</button></div>';
+  h += '</div>';
+  showModal(h);
+}
+
+function toggleSbfDateMode() {
+  var cb = document.getElementById('sbf-onlyyear');
+  var dw = document.getElementById('sbf-date-wrap');
+  var yw = document.getElementById('sbf-year-wrap');
+  if(!cb||!dw||!yw) return;
+  dw.style.display = cb.checked ? 'none' : 'block';
+  yw.style.display = cb.checked ? 'block' : 'none';
+}
+
+function saveStudieBackfill(lesCode) {
+  var lesRaw = STUDIE_DATA.find(function(l){return l.code===lesCode;});
+  if(!lesRaw) return;
+  var checked = Array.prototype.slice.call(document.querySelectorAll('.sbf-cb:checked:not(:disabled)'));
+  if(!checked.length) {
+    var warn = document.getElementById('sbf-warn');
+    if(warn) warn.style.display = 'block';
+    return;
+  }
+  var onlyYearEl = document.getElementById('sbf-onlyyear');
+  var isYearOnly = onlyYearEl && onlyYearEl.checked;
+  var datum, approxYear = false;
+  if(isYearOnly) {
+    var yearSel = document.getElementById('sbf-year');
+    var y = yearSel ? yearSel.value : String(new Date().getFullYear());
+    datum = y+'-01-01';
+    approxYear = true;
+  } else {
+    var dateEl = document.getElementById('sbf-date');
+    datum = dateEl && dateEl.value ? dateEl.value : ymdLocal();
+  }
+  var catDef = findCatByLabel('Bijbelstudie geven');
+  var ids = genEntryIds(checked.length);
+  checked.forEach(function(cb, i) {
+    var cu = (db.cursisten||[]).find(function(c){return String(c.id)===String(cb.value);});
+    if(!cu) return;
+    var entry = {
+      id: ids[i],
+      datum: datum,
+      categorie: 'Bijbelstudie geven',
+      aard: catDef ? catDef.aard : 'Bijbelstudie',
+      cursistId: cu.id,
+      cursistNaam: cu.naam,
+      thema: lesRaw.titel,
+      themacode: lesRaw.code,
+      themaCompleted: true,
+      uren: 0
+    };
+    if(approxYear) entry.approxDate = true;
+    db.entries.unshift(entry);
+  });
+  save();
+  closeModals();
+  if(currentScreen==='bijbelstudies'&&typeof renderBijbelstudies==='function')renderBijbelstudies();
 }
 
 function getStudieStats(lesCode) {
@@ -27584,10 +27707,15 @@ function getStudieStats(lesCode) {
     // sometimes weeks later. themaCompleted===false is now the only thing
     // that keeps an entry in "actueel" - anything else (true, or undefined
     // on older entries from before this field existed) counts as given.
+    // approxDate marks entries added via the "already received this study,
+    // exact date unknown" bulk-backfill tool (openStudieBackfillModal) -
+    // those are stored as Jan 1 of a chosen year, so the contact row shows
+    // just that year instead of a fake-precise "1 jan 2024".
+    var dYear = (datum||'').slice(0,4);
     if(latest.themaCompleted===false) {
-      actueel.push({naam:c.naam, datum:formatDate(datum), entryId:latest.id});
+      actueel.push({naam:c.naam, datum:formatDate(datum), datumYear:dYear, approxDate:!!latest.approxDate, entryId:latest.id});
     } else {
-      voltooid.push({naam:c.naam, datum:formatDate(datum), entryId:latest.id});
+      voltooid.push({naam:c.naam, datum:formatDate(datum), datumYear:dYear, approxDate:!!latest.approxDate, entryId:latest.id});
     }
   });
   return {voltooid:voltooid, actueel:actueel};
