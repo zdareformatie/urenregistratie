@@ -15839,7 +15839,11 @@ function toggleEntryThemaCompletedFromModal(entryId){
   touch(entry);
   save();
   refreshBackgroundScreenAfterEntryEdit();
-  openEntryDetailModal(entryId); // rebuild the popup in place so the checkbox reflects the new state
+  // rebuild the popup in place so the checkbox reflects the new state -
+  // _entryDetailReopen (set by openStudieContactHistoryModal) redirects this
+  // back to the session-history modal when that's what's actually open,
+  // instead of always falling back to the plain single-entry one.
+  (_entryDetailReopen||openEntryDetailModal)(entryId);
 }
 function editEntryDetailNote(el,entryId){
   var entry=db.entries.find(function(x){return x.id===entryId;});
@@ -15860,7 +15864,7 @@ function editEntryDetailNote(el,entryId){
     touch(entry);
     save();
     refreshBackgroundScreenAfterEntryEdit();
-    openEntryDetailModal(entryId);
+    (_entryDetailReopen||openEntryDetailModal)(entryId);
   }
   ta.onblur=function(ev){
     // Don't save/close if focus is just moving to the share checkbox right below.
@@ -15872,10 +15876,16 @@ function editEntryDetailNote(el,entryId){
   }
   ta.onkeydown=function(ev){
     if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();sv();}
-    if(ev.key==='Escape'){ta.onblur=null;openEntryDetailModal(entryId);}
+    if(ev.key==='Escape'){ta.onblur=null;(_entryDetailReopen||openEntryDetailModal)(entryId);}
   };
 }
 function openEntryDetailModal(entryId){
+  // Reset any leftover "reopen the study-history modal instead" context from
+  // openStudieContactHistoryModal below - otherwise, if that modal was
+  // dismissed via a backdrop tap instead of its own buttons (which clear
+  // this themselves), the NEXT toggle/note-edit on a totally unrelated entry
+  // opened normally from here would wrongly reopen the stale study modal.
+  _entryDetailReopen=null;
   var e=db.entries.find(function(x){return x.id===entryId;});
   if(!e)return;
   var isCall=e.categorie==='Tel./WhatsApp contact';
@@ -27922,7 +27932,7 @@ function renderStudieRow(les, stats) {
     if(stats.actueel.length) {
       h += '<div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:6px">&#128336; '+t('studie_current')+' ('+stats.actueel.length+')</div>';
       stats.actueel.forEach(function(c) {
-        h += renderStudieContact(c, 'actueel');
+        h += renderStudieContact(c, 'actueel', les.code);
       });
     }
     if(stats.voltooid.length) {
@@ -27937,7 +27947,7 @@ function renderStudieRow(les, stats) {
       h += '</div>';
       h += '<div id="'+voltooidId+'" style="display:none">';
       stats.voltooid.forEach(function(c) {
-        h += renderStudieContact(c, 'voltooid');
+        h += renderStudieContact(c, 'voltooid', les.code);
       });
       h += '</div>';
     }
@@ -27953,25 +27963,90 @@ function renderStudieRow(les, stats) {
   return h;
 }
 
-function renderStudieContact(c, status) {
+function renderStudieContact(c, status, lesCode) {
   var dot = status==='voltooid'
     ? '<span style="width:7px;height:7px;border-radius:50%;background:#22863a;display:inline-block;margin-right:5px;flex-shrink:0"></span>'
     : '<span style="width:7px;height:7px;border-radius:50%;background:var(--amber);display:inline-block;margin-right:5px;flex-shrink:0"></span>';
-  // Opens the specific study entry (via openEntryDetailModal, which now also
-  // has the finished/not-finished toggle right in it - see
-  // buildEntryDetailInnerHtml) instead of the generic contact page, so a
-  // study wrongly showing as "voltooid" here can be fixed on the spot
-  // without hunting for it in the contact's full history first.
+  // Opens openStudieContactHistoryModal (not the single-entry
+  // openEntryDetailModal anymore) - a topic given over several sessions
+  // (student needed it repeated) used to only ever show the LATEST session
+  // here, with no way to see when the earlier ones happened; that modal now
+  // pulls every session for this contact+lesson. Still has the finished/
+  // not-finished toggle right in it (via buildEntryDetailInnerHtml) so a
+  // study wrongly showing as "voltooid" here can be fixed on the spot.
   // approxDate entries (added via "add contacts who already received this
   // study, exact date unknown") only show the year here rather than a
   // fake-precise full date.
   var dateLabel = c.approxDate ? (c.datumYear||c.datum) : c.datum;
-  var h = '<div style="display:flex;align-items:center;padding:5px 8px;background:var(--surface2);border-radius:6px;margin-bottom:4px;cursor:pointer" onclick="openEntryDetailModal('+ssIdArg(c.entryId)+')">';
+  var sessionBadge = (c.sessionCount>1) ? '<span style="font-size:10px;font-weight:700;color:var(--text3);background:var(--border);padding:0 5px;border-radius:8px;margin-right:6px">'+c.sessionCount+'&times;</span>' : '';
+  var h = '<div style="display:flex;align-items:center;padding:5px 8px;background:var(--surface2);border-radius:6px;margin-bottom:4px;cursor:pointer" onclick="openStudieContactHistoryModal(\''+lesCode+'\','+ssIdArg(c.cursistKey)+')">';
   h += dot;
   h += '<span style="font-size:13px;font-weight:500;flex:1">'+c.naam+'</span>';
+  h += sessionBadge;
   h += '<span style="font-size:11px;color:var(--text3)">'+dateLabel+'</span>';
   h += '</div>';
   return h;
+}
+// Shows every logged session of a given contact + lesson code together (not
+// just the latest one, which is all openEntryDetailModal ever showed here) -
+// so a study that took several repeats shows when each part was given, plus
+// a way to jump to the contact's own page, neither of which existed before.
+// _entryDetailReopen lets the shared finished-toggle/note-edit handlers below
+// (toggleEntryThemaCompletedFromModal, editEntryDetailNote) rebuild THIS
+// modal in place instead of falling back to the plain single-entry one.
+var _entryDetailReopen = null;
+function openStudieContactHistoryModal(lesCode, cursistKey) {
+  _entryDetailReopen = function(){ openStudieContactHistoryModal(lesCode, cursistKey); };
+  var relevant = db.entries.filter(function(e) {
+    if (!e.cursistNaam) return false;
+    var key = e.cursistId||e.cursistNaam;
+    if (String(key) !== String(cursistKey)) return false;
+    if ((e.themacode||'') === lesCode) return true;
+    var th = e.thema||'';
+    if (th.indexOf(lesCode) !== 0) return false;
+    var nextCh = th.charAt(lesCode.length);
+    return !nextCh || !/[0-9]/.test(nextCh);
+  });
+  if (!relevant.length) { _entryDetailReopen = null; return; }
+  var sorted = relevant.slice().sort(function(a,b){ return a.datum>b.datum?1:-1; }); // oldest first
+  var latest = sorted[sorted.length-1];
+  var cuId = latest.cursistId||'';
+  var titleTxt = getThemaDisplay(latest.thema||latest.omschrijving||getCatLabel(latest.categorie));
+
+  var h = '<div style="padding:16px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:2px">';
+  h += '<div style="font-size:16px;font-weight:700">'+titleTxt+'</div>';
+  h += '<button onclick="_entryDetailReopen=null;closeModals()" style="border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px">&times;</button>';
+  h += '</div>';
+  h += '<div style="font-size:13px;color:var(--text2);margin-bottom:12px">'+latest.cursistNaam+'</div>';
+
+  if (sorted.length > 1) {
+    var sessionsLbl = tMap({nl:'Sessies',en:'Sessions',es:'Sesiones',fr:'Séances',de:'Sitzungen',ro:'Sesiuni',hu:'Alkalmak',ru:'Занятия',it:'Sessioni',pt:'Sessões'});
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px">'+sessionsLbl+' ('+sorted.length+')</div>';
+    h += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">';
+    sorted.forEach(function(s, i) {
+      var isLast = i === sorted.length-1;
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border-radius:6px'+(isLast?';border:1px solid var(--brand)':'')+'">';
+      h += '<span style="width:18px;height:18px;border-radius:50%;background:'+(isLast?'var(--brand)':'var(--border)')+';color:'+(isLast?'#fff':'var(--text3)')+';font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</span>';
+      h += '<span style="flex:1;font-size:13px">'+(s.approxDate?(s.datum||'').slice(0,4):formatDate(s.datum))+'</span>';
+      if (parseFloat(s.uren) > 0) h += '<span style="font-size:12px;color:var(--text3)">'+parseFloat(s.uren)+t('hours_abbr')+'</span>';
+      h += '</div>';
+      if (s.opmerking) h += '<div style="font-size:12px;color:var(--text3);padding:0 8px 4px 34px;white-space:pre-wrap">'+s.opmerking+'</div>';
+    });
+    h += '</div>';
+  }
+
+  h += buildEntryDetailInnerHtml(latest);
+
+  var gotoContactLbl = tMap({nl:'Naar contact',en:'Go to contact',es:'Ir al contacto',fr:'Voir le contact',de:'Zum Kontakt',ro:'Către contact',hu:'A kapcsolathoz',ru:'К контакту',it:'Vai al contatto',pt:'Ir para o contacto'});
+  h += '<div style="display:flex;gap:8px;margin-top:14px">';
+  if (cuId) {
+    h += '<button class="btn" onclick="_entryDetailReopen=null;closeModals();openCursistDetail('+ssIdArg(cuId)+')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13"><use href="#ico-user"/></svg>'+gotoContactLbl+'</button>';
+  }
+  h += '<button class="btn primary" onclick="_entryDetailReopen=null;closeModals();openEditEntryModal('+ssIdArg(latest.id)+',true)" style="flex:1">'+t('edit_btn')+'</button>';
+  h += '</div>';
+  h += '</div>';
+  showModal(h);
 }
 
 // Bulk-add contacts already known to have received a given Bible study
@@ -28162,7 +28237,13 @@ function getStudieStats(lesCode) {
     byContact[key].entries.push(e);
   });
   var voltooid = [], actueel = [];
-  Object.values(byContact).forEach(function(c) {
+  // Object.keys (not .values) so the byContact lookup key - cursistId when
+  // there is one, else the raw cursistNaam - travels along with each row.
+  // Needed by openStudieContactHistoryModal below to re-find every session
+  // for this contact+lesson (not just the latest one) and to link over to
+  // the contact's own page.
+  Object.keys(byContact).forEach(function(cursistKey) {
+    var c = byContact[cursistKey];
     var sorted = c.entries.sort(function(a,b){return b.datum>a.datum?1:-1;});
     var latest = sorted[0];
     var datum = latest.datum||'';
@@ -28185,9 +28266,9 @@ function getStudieStats(lesCode) {
     // just that year instead of a fake-precise "1 jan 2024".
     var dYear = (datum||'').slice(0,4);
     if(latest.themaCompleted===false) {
-      actueel.push({naam:c.naam, datum:formatDate(datum), datumYear:dYear, approxDate:!!latest.approxDate, entryId:latest.id});
+      actueel.push({naam:c.naam, datum:formatDate(datum), datumYear:dYear, approxDate:!!latest.approxDate, entryId:latest.id, cursistKey:cursistKey, sessionCount:sorted.length});
     } else {
-      voltooid.push({naam:c.naam, datum:formatDate(datum), datumYear:dYear, approxDate:!!latest.approxDate, entryId:latest.id});
+      voltooid.push({naam:c.naam, datum:formatDate(datum), datumYear:dYear, approxDate:!!latest.approxDate, entryId:latest.id, cursistKey:cursistKey, sessionCount:sorted.length});
     }
   });
   return {voltooid:voltooid, actueel:actueel};
