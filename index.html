@@ -25118,6 +25118,15 @@ function buildIcsForPlannedEntries(items){
     lines.push('BEGIN:VEVENT');
     lines.push('UID:'+p.id+'-zdaapp@urenregistratie');
     lines.push('DTSTAMP:'+dtstamp);
+    // SEQUENCE is the iCalendar-spec signal that this is a revision of the
+    // SAME event (matched by UID), not a brand new one - without it, Apple/
+    // Google/Windows Calendar have no reliable way to tell "this is an
+    // update, please replace the old details" from "this looks like the
+    // same event again, ignore it" when a .ics is opened a second time via
+    // the same blob-URL "Add to Calendar" handoff. Starts at 0 on first
+    // export and is bumped every time this plan is re-sent after a change
+    // (see savePlanModal's calSeq increment and togglePlanCalExport).
+    lines.push('SEQUENCE:'+(parseInt(p.calSeq)||0));
     if(allDay){
       lines.push('DTSTART;VALUE=DATE:'+startStr);
       lines.push('DTEND;VALUE=DATE:'+endStr);
@@ -25249,6 +25258,10 @@ function savePlanModal(planId){
       // forget it (that flag is exactly what the re-export prompt below
       // needs to decide whether to say anything at all).
       if(oldPlan.calExported)entry.calExported=true;
+      // Carry the revision counter forward too (see SEQUENCE comment in
+      // buildIcsForPlannedEntries) - it needs to keep climbing across edits,
+      // not reset to 0 every time this object gets rebuilt from the form.
+      entry.calSeq=parseInt(oldPlan.calSeq)||0;
       db.planned[idx]=entry;
     } else db.planned.push(entry);
   } else {
@@ -25334,6 +25347,13 @@ function savePlanModal(planId){
     // Windows calendar entry silently kept showing the old title forever.
     var calTitleChanged = icsTitleForPlanned(oldPlan)!==icsTitleForPlanned(entry);
     if(calDateChanged||calTimeChanged||calTitleChanged){
+      // Bump the revision counter (see SEQUENCE comment in
+      // buildIcsForPlannedEntries) BEFORE the prompt's "Update calendar"
+      // button can fire - that button looks up this same db.planned record
+      // by id, so the higher SEQUENCE needs to already be saved for the
+      // re-sent .ics to carry it.
+      entry.calSeq=(parseInt(entry.calSeq)||0)+1;
+      savePlanned();
       // The plan's date/time/title changed after it was already handed off
       // to the OS calendar app once - that calendar entry has no live link
       // back here, so it would silently keep showing the old info unless
@@ -25355,7 +25375,13 @@ function togglePlanCalExport(planId,cb){
   var p=db.planned.find(function(x){return x.id===planId;});
   if(!p){ if(cb)cb.checked=false; return; }
   if(cb&&cb.checked){
+    // A manual re-check (the box was off, e.g. because the event got
+    // deleted from the calendar app) counts as a resend too - bump the
+    // revision counter so the calendar app has a chance to tell this apart
+    // from the original send (see SEQUENCE comment in
+    // buildIcsForPlannedEntries).
     p.calExported=true;
+    p.calSeq=(parseInt(p.calSeq)||0)+1;
     touch(p);
     savePlanned();
     exportPlannedToIcs([p]);
