@@ -8023,14 +8023,19 @@ function t(key){
 // etc.) that don't warrant a full TRANSLATIONS key. Pass a {nl,en,es,...}
 // map; falls back to nl for any language not included.
 function tMap(map){return (map&&(map[LANG]||map.nl))||'';}
-// Shared "share this note with the president/leader" checkbox, used
-// everywhere an activity's opmerking (personal note) can be typed or edited
-// (main wizard, Logboek edit-entry modal, entry-detail popup). Per-note
-// consent replaces the old app-wide "include personal notes" PDF toggle -
-// a note only appears in the PDF/JSON export if its own checkbox was
-// checked, defaulting unchecked (private) either way.
-function noteShareCheckboxHtml(id,checked){
-  var lbl=tMap({nl:'Deze opmerking delen met de voorzitter (in rapport/PDF opnemen)',en:'Share this note with the president (included in report/PDF)',es:'Compartir esta nota con el presidente (incluida en el informe/PDF)',fr:'Partager cette note avec le président (incluse dans le rapport/PDF)',de:'Diese Notiz mit dem Vorsitzenden teilen (im Bericht/PDF enthalten)',ro:'Distribuie această notă președintelui (inclusă în raport/PDF)',hu:'Oszd meg ezt a megjegyzést az elnökkel (szerepel a jelentésben/PDF-ben)',ru:'Поделиться этой заметкой с президентом (включается в отчёт/PDF)',it:'Condividi questa nota con il presidente (inclusa nel report/PDF)',pt:'Partilhar esta nota com o presidente (incluída no relatório/PDF)'});
+// Shared "keep this note private" checkbox, used everywhere an activity's
+// opmerking (personal note) can be typed or edited (main wizard, Logboek
+// edit-entry modal, entry-detail popup). Notes are shared with the
+// president/leader (in report/PDF/JSON export) BY DEFAULT now - most notes
+// are just useful context about what happened, so checking this ONE box
+// excludes just that note for the rare case it says something private.
+// Inverted from the original design (opt-IN "share this note", default
+// private/excluded) after real-world use showed almost every note was
+// getting silently dropped from exports just because nobody thought to tick
+// the box each time, even though the vast majority were perfectly fine to
+// include.
+function notePrivateCheckboxHtml(id,checked){
+  var lbl=tMap({nl:'Deze opmerking is privé (niet delen met de voorzitter / niet in rapport/PDF opnemen)',en:'This note is private (not shared with the president / not included in report/PDF)',es:'Esta nota es privada (no se comparte con el presidente / no se incluye en el informe/PDF)',fr:'Cette note est privée (non partagée avec le président / non incluse dans le rapport/PDF)',de:'Diese Notiz ist privat (wird nicht mit dem Vorsitzenden geteilt / nicht im Bericht/PDF enthalten)',ro:'Această notă este privată (nu este distribuită președintelui / nu este inclusă în raport/PDF)',hu:'Ez a megjegyzés privát (nem osztjuk meg az elnökkel / nem szerepel a jelentésben/PDF-ben)',ru:'Эта заметка личная (не передаётся президенту / не включается в отчёт/PDF)',it:'Questa nota è privata (non condivisa con il presidente / non inclusa nel report/PDF)',pt:'Esta nota é privada (não é partilhada com o presidente / não é incluída no relatório/PDF)'});
   return '<label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;margin-top:4px;line-height:1.4"><input type="checkbox" id="'+id+'" '+(checked?'checked':'')+' style="width:15px;height:15px;flex-shrink:0;margin-top:1px">'+lbl+'</label>';
 }
 
@@ -14631,7 +14636,7 @@ function renderWiz(){
       +gemeenteField
       +'<span class="form-label">'+t('wizard_notes_lbl')+'</span>'
       +'<textarea id="w-opmerking" placeholder="'+t('wizard_notes_ph')+'">'+(draft.opmerking||'')+'</textarea>'
-      +noteShareCheckboxHtml('w-opmerking-share',!!draft.notitieDelen)
+      +notePrivateCheckboxHtml('w-opmerking-private',!!draft.notitiePrive)
       +'<span class="form-label">'+t('wizard_followup_lbl')+'</span>'
       +'<input type="text" id="w-reminder" placeholder="'+t('wizard_followup_ph')+'" value="'+(draft.reminder||'')+'">'
       +'<div class="field-row" style="margin-top:8px">'
@@ -14650,8 +14655,8 @@ function renderWiz(){
       if(showGemeente)wSetGemeente();
       // Read this before wSave() re-renders the DOM out from under this step.
       var calCb=document.getElementById('w-add-to-cal');
-      var noteShareCb=document.getElementById('w-opmerking-share');
-      draft.notitieDelen=noteShareCb?noteShareCb.checked:false;
+      var notePrivateCb=document.getElementById('w-opmerking-private');
+      draft.notitiePrive=notePrivateCb?notePrivateCb.checked:false;
       wSave(calCb?calCb.checked:false);
     };
     wizAttachSuggest('w-opmerking','opmerking');
@@ -14871,7 +14876,7 @@ function saveDraftAsPlanned(){
     km:parseFloat(draft.km)||0,
     kosten:parseFloat(draft.kosten)||0,
     opmerking:draft.opmerking||'',
-    notitieDelen:!!draft.notitieDelen,
+    notitiePrive:!!draft.notitiePrive,
     completed:false,skipped:false,reminded:false
   };
   // Multi-day span (task: "beginning and ending date" for a planned trip) —
@@ -15854,13 +15859,13 @@ function editEntryDetailNote(el,entryId){
   ta.rows=2;
   ta.style.cssText='font-size:13px;font-family:inherit;width:100%;box-sizing:border-box;border:none;border-bottom:2px solid var(--brand);background:transparent;outline:none;color:var(--text);resize:vertical;padding:1px 0';
   wrap.appendChild(ta);
-  wrap.insertAdjacentHTML('beforeend',noteShareCheckboxHtml('sti-opmerking-share-'+entryId,!!entry.notitieDelen));
+  wrap.insertAdjacentHTML('beforeend',notePrivateCheckboxHtml('sti-opmerking-private-'+entryId,!!entry.notitiePrive));
   el.replaceWith(wrap);
   ta.focus();
-  var shareCb=wrap.querySelector('#sti-opmerking-share-'+entryId);
+  var shareCb=wrap.querySelector('#sti-opmerking-private-'+entryId);
   function sv(){
     entry.opmerking=ta.value.trim();
-    entry.notitieDelen=shareCb?shareCb.checked:false;
+    entry.notitiePrive=shareCb?shareCb.checked:false;
     touch(entry);
     save();
     refreshBackgroundScreenAfterEntryEdit();
@@ -19374,7 +19379,7 @@ ${hasBibleStudies?`
           const displayU=isNaN(u)?'?':(u%1===0?u.toString():u.toFixed(1));
           return`<div class="rp-bs-row">
             <div class="rp-bs-date">${formatDateShort(ss.datum)}</div>
-            <div style="flex:1;min-width:0"><div class="rp-bs-theme">${ss.thema||ss.omschrijving||'&mdash;'}</div>${(ss.opmerking&&ss.notitieDelen===true)?`<div class="rp-bs-note">${escapeHtml(ss.opmerking)}</div>`:''}</div>
+            <div style="flex:1;min-width:0"><div class="rp-bs-theme">${ss.thema||ss.omschrijving||'&mdash;'}</div>${(ss.opmerking&&!ss.notitiePrive)?`<div class="rp-bs-note">${escapeHtml(ss.opmerking)}</div>`:''}</div>
             <div class="rp-bs-hrs">${displayU}${t('hours_abbr')}</div>
           </div>`;
         }).join('')}
@@ -19626,7 +19631,7 @@ ${(function(){
         return`<div class="rp-act-row3 rp-sec-timeline-detail">
               <div class="rp-act-r3-date">${idx===0?dateShort:''}</div>
               <div class="rp-act-r3-cat"><div class="rp-act-group-bar" style="background:${color}"></div><span class="rp-act-r3-cat-txt">${catLabel}</span></div>
-              <div class="rp-act-r3-desc"><span class="rp-name-real">${name}</span><span class="rp-name-anon">${nameAnon}</span>${(e.opmerking&&e.notitieDelen===true)?' <span class="rp-act-r3-note">— '+escapeHtml(e.opmerking)+'</span>':''}</div>
+              <div class="rp-act-r3-desc"><span class="rp-name-real">${name}</span><span class="rp-name-anon">${nameAnon}</span>${(e.opmerking&&!e.notitiePrive)?' <span class="rp-act-r3-note">— '+escapeHtml(e.opmerking)+'</span>':''}</div>
               <div class="rp-act-r3-km">${kmKostenTxt}</div>
               <div class="rp-act-r3-hrs">${displayU}${t('hours_abbr')}</div>
               <div class="rp-act-r3-total"></div>
@@ -21627,11 +21632,12 @@ function filterExportEntry(e,prefs){
   if(prefs.timelineDetail===false){
     delete ee.omschrijving;
     delete ee.opmerking;
-  }else if(ee.notitieDelen!==true){
-    // Personal notes are private by default and only travel with an export
-    // if the worker explicitly checked "share with president" on that
-    // specific entry - replaces the old blanket "include personal notes"
-    // toggle, which leaked every note regardless of the worker's intent.
+  }else if(ee.notitiePrive===true){
+    // Personal notes are shared by default (most notes are useful context
+    // for the president) and only withheld if the worker explicitly checked
+    // "keep this note private" on that specific entry. An entry with no
+    // notitiePrive field at all (e.g. older/imported data) is treated as
+    // shared, matching the new default.
     delete ee.opmerking;
   }
   return ee;
@@ -21753,9 +21759,9 @@ function exportForPresident(prefs){
   });
   // entries: gated by 'timeline' (include the raw activity log at all), each
   // entry trimmed by km/kosten/timelineDetail (full description+notes) and,
-  // separately, each entry's own notitieDelen ("share with president") flag
-  // for its personal note. Scoped to exportYear (see above) - not the full
-  // multi-year history.
+  // separately, each entry's own notitiePrive ("keep this note private, don't
+  // share with president") flag for its personal note - shared by default.
+  // Scoped to exportYear (see above) - not the full multi-year history.
   var exportEntries=prefs.timeline===false?[]:yearEntries.map(function(e){return filterExportEntry(e,prefs);});
 
   // "Vakantie / verlof / ziekteverzuim / feestdagen" checkbox - used to be
@@ -23451,7 +23457,7 @@ function reclassifyEntryIfFuture(entry){
     km:parseFloat(entry.km)||0,
     kosten:parseFloat(entry.kosten)||0,
     opmerking:entry.opmerking||'',
-    notitieDelen:!!entry.notitieDelen,
+    notitiePrive:!!entry.notitiePrive,
     completed:false,skipped:false,reminded:false
   });
   savePlanned();
@@ -30762,7 +30768,7 @@ function openEditEntryModal(entryId,skipSummary){
   h+='</div>';
   h+='<span class="form-label">'+t('wizard_note')+'</span>';
   h+='<textarea id="ee-opmerking" style="width:100%;height:60px;margin-bottom:4px">'+(e.opmerking||'')+'</textarea>';
-  h+='<div style="margin-bottom:12px">'+noteShareCheckboxHtml('ee-opmerking-share',!!e.notitieDelen)+'</div>';
+  h+='<div style="margin-bottom:12px">'+notePrivateCheckboxHtml('ee-opmerking-private',!!e.notitiePrive)+'</div>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
   h+='<button class="btn danger sm" onclick="deleteEntry('+entryIdArg+');closeModals()" style="flex:0 0 auto">'
     +t('delete_btn')+'</button>';
@@ -30801,7 +30807,7 @@ function duplicateEditEntry(entryId){
   var thema=document.getElementById('ee-thema');
   var omsch=document.getElementById('ee-omschrijving');
   var opm=document.getElementById('ee-opmerking');
-  var opmShare=document.getElementById('ee-opmerking-share');
+  var opmShare=document.getElementById('ee-opmerking-private');
   if(datum)e.datum=datum.value;
   if(tijd)e.tijd=tijd.value||'';
   if(uren)e.uren=parseFloat(uren.value)||0;
@@ -30849,7 +30855,7 @@ function duplicateEditEntry(entryId){
   if(eeCompleted2)e.themaCompleted=eeCompleted2.checked;
   if(omsch)e.omschrijving=omsch.value;
   if(opm)e.opmerking=opm.value;
-  if(opmShare)e.notitieDelen=opmShare.checked;
+  if(opmShare)e.notitiePrive=opmShare.checked;
   // Same future-check as saveEditEntry - "Save as new" with a future date/
   // time should land in Planned, not the registered log, same as the wizard
   // would have classified a fresh entry with that date/time. `e` isn't in
@@ -30866,7 +30872,7 @@ function duplicateEditEntry(entryId){
       themaCompleted:e.themaCompleted!==false,
       uren:parseFloat(e.uren)||0,reisUren:parseFloat(e.reisUren)||0,
       km:parseFloat(e.km)||0,kosten:parseFloat(e.kosten)||0,
-      opmerking:e.opmerking||'',notitieDelen:!!e.notitieDelen,
+      opmerking:e.opmerking||'',notitiePrive:!!e.notitiePrive,
       completed:false,skipped:false,reminded:false
     });
     savePlanned();
@@ -30895,7 +30901,7 @@ function saveEditEntry(entryId){
   var thema=document.getElementById('ee-thema');
   var omsch=document.getElementById('ee-omschrijving');
   var opm=document.getElementById('ee-opmerking');
-  var opmShare=document.getElementById('ee-opmerking-share');
+  var opmShare=document.getElementById('ee-opmerking-private');
   if(datum)e.datum=datum.value;
   if(tijd)e.tijd=tijd.value||'';
   if(uren)e.uren=parseFloat(uren.value)||0;
@@ -30943,7 +30949,7 @@ function saveEditEntry(entryId){
   if(eeCompleted)e.themaCompleted=eeCompleted.checked;
   if(omsch)e.omschrijving=omsch.value;
   if(opm)e.opmerking=opm.value;
-  if(opmShare)e.notitieDelen=opmShare.checked;
+  if(opmShare)e.notitiePrive=opmShare.checked;
   // "Meerdere studenten" (see openEditEntryModal comment above) - diff the
   // checked contacts against whichever companion entries already share this
   // entry's groupStudyId, so re-opening the edit modal and changing the
