@@ -1530,6 +1530,11 @@ input[type="radio"]:checked::after{content:'';position:absolute;inset:3px;border
 
     </div>
 
+    <!-- Rebuilt entirely via renderTipsSettingsSection() (called from
+         applySettings) using tMap() rather than data-i18n, so it doesn't
+         need matching TRANSLATIONS keys added for all 10 languages. -->
+    <div class="settings-box"><div id="settings-tips-wrap"></div></div>
+
     <div class="settings-section-title" data-i18n="settings_group_profile">Mijn profiel</div>
     <div class="settings-box">
 
@@ -5934,6 +5939,102 @@ const CHANGELOG=[
 // the patch number IS the changelog batch count, so both always agree.
 const APP_VERSION='1.0.'+CHANGELOG.length;
 const UPDATE_LBL_MAP={nl:'Update',en:'Update',es:'Actualización',fr:'Mise à jour',de:'Update',ro:'Actualizare',hu:'Frissítés',ru:'Обновление',it:'Aggiornamento',pt:'Atualização'};
+// Short "did you know" hints, one shown at random per day on Home (see
+// showDailyTipBar/ensureDailyTip) and all listable together in Settings
+// (openTipsList) for anyone who wants to browse the whole set at once.
+// Each covers one real, easy-to-miss feature - keep new entries accurate to
+// the actual current UI wording, since a tip describing a button that no
+// longer says what the tip claims is worse than no tip at all.
+const TIPS=[
+  {nl:'Wist je dat je in het Rapport-tabblad, bij Vakantie & Verlof, op het +-tekentje naast een categorie kunt tikken om meteen een hele periode vrije dagen toe te voegen?',en:'Did you know? In the Report tab, under Vacation & Leave, you can tap the + next to a category to add a whole date range of days off at once.',es:'¿Sabías que en la pestaña Informe, en Vacaciones y permisos, puedes tocar el + junto a una categoría para añadir de una vez todo un rango de días libres?',fr:'Le saviez-vous ? Dans l\'onglet Rapport, sous Vacances et congés, vous pouvez appuyer sur le + à côté d\'une catégorie pour ajouter d\'un coup toute une période de jours de congé.',de:'Wussten Sie schon? Im Bericht-Tab können Sie unter Urlaub & Verlof auf das + neben einer Kategorie tippen, um gleich einen ganzen Zeitraum freier Tage hinzuzufügen.',ro:'Știai că în fila Raport, la Concediu și zile libere, poți atinge + de lângă o categorie pentru a adăuga dintr-o dată un întreg interval de zile libere?',hu:'Tudtad? A Jelentés fülön, a Szabadság és szabadnapok résznél, megérintheted a + jelet egy kategória mellett, hogy egyszerre egy egész napintervallumot adj hozzá szabadnapként.',ru:'Знаете ли вы? На вкладке «Отчёт», в разделе «Отпуск и выходные», можно нажать + рядом с категорией, чтобы сразу добавить целый период выходных дней.',it:'Lo sapevi? Nella scheda Report, in Ferie e permessi, puoi toccare il + accanto a una categoria per aggiungere subito un intero periodo di giorni liberi.',pt:'Sabia que na aba Relatório, em Férias e licenças, pode tocar no + ao lado de uma categoria para adicionar de uma vez todo um período de dias de folga?'},
+  {nl:'Wist je dat je een to-do-taak kunt verplaatsen tussen persoonlijk en gemeente door op het gekleurde bolletje naast het vinkje te tikken?',en:'Did you know? You can move a to-do task between personal and church by tapping the colored dot next to its checkbox.',es:'¿Sabías que puedes mover una tarea entre personal e iglesia tocando el puntito de color junto a su casilla?',fr:'Le saviez-vous ? Vous pouvez déplacer une tâche entre personnel et église en appuyant sur le petit point coloré à côté de sa case à cocher.',de:'Wussten Sie schon? Sie können eine Aufgabe zwischen persönlich und Gemeinde verschieben, indem Sie auf den farbigen Punkt neben dem Kästchen tippen.',ro:'Știai că poți muta o sarcină între personal și biserică atingând punctul colorat de lângă căsuța ei?',hu:'Tudtad? Egy feladatot áthelyezhetsz személyes és gyülekezeti között, ha megérinted a jelölőnégyzet melletti színes pontot.',ru:'Знаете ли вы? Можно переместить задачу между личным и церковным списком, нажав на цветную точку рядом с флажком.',it:'Lo sapevi? Puoi spostare un\'attività tra personale e chiesa toccando il puntino colorato accanto alla sua casella.',pt:'Sabia que pode mover uma tarefa entre pessoal e igreja tocando no pontinho colorido ao lado da caixa de seleção?'},
+  {nl:'Wist je dat je bij het registreren van een bijbelstudie "Meerdere studenten" kunt aanvinken om ook andere aanwezigen bij diezelfde studie toe te voegen?',en:'Did you know? When logging a Bible study, you can check "Multiple students" to add other people who were present at that same study too.',es:'¿Sabías que al registrar un estudio bíblico puedes marcar "Varios estudiantes" para añadir también a otras personas presentes en ese mismo estudio?',fr:'Le saviez-vous ? Lors de l\'enregistrement d\'une étude biblique, vous pouvez cocher « Plusieurs étudiants » pour ajouter aussi d\'autres personnes présentes à cette même étude.',de:'Wussten Sie schon? Beim Erfassen eines Bibelstudiums können Sie „Mehrere Studenten" ankreuzen, um auch andere bei diesem Studium anwesende Personen hinzuzufügen.',ro:'Știai că, atunci când înregistrezi un studiu biblic, poți bifa „Mai mulți studenți” pentru a adăuga și alte persoane prezente la același studiu?',hu:'Tudtad? Egy bibliatanulmány rögzítésekor bejelölheted a „Több tanuló” lehetőséget, hogy az ugyanazon tanulmányon jelen lévő további személyeket is hozzáadd.',ru:'Знаете ли вы? При регистрации изучения Библии можно отметить «Несколько учеников», чтобы добавить и других присутствовавших на этом занятии.',it:'Lo sapevi? Quando registri uno studio biblico puoi selezionare "Più studenti" per aggiungere anche altre persone presenti a quello stesso studio.',pt:'Sabia que ao registar um estudo bíblico pode marcar "Vários estudantes" para adicionar também outras pessoas presentes nesse mesmo estudo?'},
+  {nl:'Wist je dat je in de spreadsheet-weergave met Tab van cel naar cel kunt springen, net als in Excel?',en:'Did you know? In the spreadsheet view you can press Tab to jump from cell to cell, just like in Excel.',es:'¿Sabías que en la vista de hoja de cálculo puedes pulsar Tab para saltar de celda en celda, igual que en Excel?',fr:'Le saviez-vous ? Dans la vue tableur, vous pouvez appuyer sur Tab pour passer d\'une cellule à l\'autre, comme dans Excel.',de:'Wussten Sie schon? In der Tabellenansicht können Sie mit Tab von Zelle zu Zelle springen, genau wie in Excel.',ro:'Știai că în vizualizarea foaie de calcul poți apăsa Tab pentru a sări de la o celulă la alta, la fel ca în Excel?',hu:'Tudtad? A táblázat nézetben a Tab billentyűvel ugorhatsz cellából cellába, akárcsak az Excelben.',ru:'Знаете ли вы? В режиме таблицы можно нажимать Tab, чтобы переходить от ячейки к ячейке, как в Excel.',it:'Lo sapevi? Nella vista foglio di calcolo puoi premere Tab per passare da una cella all\'altra, proprio come in Excel.',pt:'Sabia que na vista de folha de cálculo pode premir Tab para saltar de célula em célula, tal como no Excel?'},
+  {nl:'Wist je dat je in de spreadsheet Cmd+D (Mac) of Ctrl+D (Windows) kunt gebruiken om de waarde uit de cel erboven te kopiëren?',en:'Did you know? In the spreadsheet you can press Cmd+D (Mac) or Ctrl+D (Windows) to copy the value from the cell directly above.',es:'¿Sabías que en la hoja de cálculo puedes usar Cmd+D (Mac) o Ctrl+D (Windows) para copiar el valor de la celda de justo arriba?',fr:'Le saviez-vous ? Dans le tableur, vous pouvez utiliser Cmd+D (Mac) ou Ctrl+D (Windows) pour copier la valeur de la cellule juste au-dessus.',de:'Wussten Sie schon? In der Tabelle können Sie Cmd+D (Mac) oder Strg+D (Windows) verwenden, um den Wert der Zelle direkt darüber zu kopieren.',ro:'Știai că în foaia de calcul poți folosi Cmd+D (Mac) sau Ctrl+D (Windows) pentru a copia valoarea din celula de deasupra?',hu:'Tudtad? A táblázatban a Cmd+D (Mac) vagy Ctrl+D (Windows) billentyűkombinációval másolhatod a közvetlenül feletted lévő cella értékét.',ru:'Знаете ли вы? В таблице можно использовать Cmd+D (Mac) или Ctrl+D (Windows), чтобы скопировать значение из ячейки прямо над текущей.',it:'Lo sapevi? Nel foglio di calcolo puoi usare Cmd+D (Mac) o Ctrl+D (Windows) per copiare il valore della cella soprastante.',pt:'Sabia que na folha de cálculo pode usar Cmd+D (Mac) ou Ctrl+D (Windows) para copiar o valor da célula diretamente acima?'},
+  {nl:'Wist je dat je in Rapport, bij "Uren per categorie", op een losse invoer kunt tikken om er direct naartoe te springen — en vanuit dat dagoverzicht ook naar precies die dag kunt springen?',en:'Did you know? In Report, under "Hours per category", you can tap an individual entry to jump straight to it — and from there jump to that exact day in the day overview.',es:'¿Sabías que en Informe, en "Horas por categoría", puedes tocar una entrada para ir directamente a ella, y desde ahí saltar a ese día exacto en el resumen diario?',fr:'Le saviez-vous ? Dans Rapport, sous « Heures par catégorie », vous pouvez appuyer sur une entrée pour y accéder directement, puis passer de là à ce jour précis dans l\'aperçu journalier.',de:'Wussten Sie schon? Im Bericht können Sie unter „Stunden pro Kategorie" auf einen Eintrag tippen, um direkt dorthin zu springen — und von dort aus zu genau diesem Tag in der Tagesübersicht.',ro:'Știai că în Raport, la „Ore pe categorie”, poți atinge o intrare pentru a sări direct la ea — și de acolo, la acea zi exactă din privirea de ansamblu zilnică?',hu:'Tudtad? A Jelentésben, az „Órák kategóriánként” résznél megérinthetsz egy bejegyzést, hogy egyenesen odaugorj — onnan pedig tovább az adott napra a napi áttekintésben.',ru:'Знаете ли вы? В Отчёте, в разделе «Часы по категориям», можно нажать на запись, чтобы перейти прямо к ней — а оттуда к этому конкретному дню в дневном обзоре.',it:'Lo sapevi? Nel Report, sotto "Ore per categoria", puoi toccare una voce per andare direttamente lì — e da lì passare a quel giorno esatto nella panoramica giornaliera.',pt:'Sabia que no Relatório, em "Horas por categoria", pode tocar numa entrada para ir diretamente a ela — e dali saltar para esse dia exato na visão geral diária?'}
+];
+// Rotation: same tip stays put all day (tipsLastDate/tipsLastIndex), picked
+// fresh - and different from yesterday's, when there's more than one tip -
+// the moment the calendar date changes. tipsBarDismissed resets alongside
+// it, so dismissing today's hint doesn't silently opt someone out forever;
+// it just comes back tomorrow with a new one. tipsEnabled is treated as on
+// whenever it isn't explicitly false, so existing saved profiles that
+// predate this feature get it without needing a migration step.
+function ensureDailyTip(){
+  var s=db.settings;
+  var today=ymdLocal();
+  if(s.tipsLastDate!==today){
+    var prev=s.tipsLastIndex;
+    var idx=0;
+    if(TIPS.length>1){do{idx=Math.floor(Math.random()*TIPS.length);}while(idx===prev);}
+    s.tipsLastIndex=idx;
+    s.tipsLastDate=today;
+    s.tipsBarDismissed=false;
+    save();
+  }
+}
+function dismissTipBar(){
+  db.settings.tipsBarDismissed=true;
+  save();
+  var el=document.getElementById('app-tip-bar');
+  if(el)el.remove();
+}
+// Small dismissible bar, same visual pattern as showAppUpdateBar (a
+// reminder-bar in #reminder-status-bar) but in the amber tone already used
+// elsewhere in the app for helpful-but-optional notes, so it doesn't get
+// confused with the brand-colored "new version available" bar.
+function showDailyTipBar(){
+  var bar=document.getElementById('reminder-status-bar');
+  if(!bar||document.getElementById('app-tip-bar'))return;
+  if(db.settings.tipsEnabled===false)return;
+  // Must run BEFORE the dismissed check below: this is what clears
+  // tipsBarDismissed on a new calendar day. Checking dismissed first would
+  // permanently lock the bar off after the very first dismissal, since
+  // nothing else ever resets that flag back to false.
+  ensureDailyTip();
+  if(db.settings.tipsBarDismissed)return;
+  var tip=TIPS[db.settings.tipsLastIndex]||TIPS[0];
+  if(!tip)return;
+  var d=document.createElement('div');
+  d.id='app-tip-bar';
+  d.className='reminder-bar';
+  d.style.cssText='background:var(--amber-light);color:var(--amber);padding:8px 14px;border-radius:8px;margin-bottom:6px;font-size:12.5px;line-height:1.4;display:flex;justify-content:space-between;align-items:flex-start;gap:8px';
+  d.innerHTML='<span style="display:flex;align-items:flex-start;gap:6px"><svg width="14" height="14" style="flex-shrink:0;margin-top:1px"><use href="#ico-info"/></svg><span>'+tMap(tip)+'</span></span><button onclick="dismissTipBar()" style="border:none;background:none;color:var(--amber);opacity:.7;cursor:pointer;font-size:16px;flex-shrink:0;line-height:1">&times;</button>';
+  bar.appendChild(d);
+}
+// Settings > Tips section - rebuilt fresh (via tMap, not the static
+// data-i18n/TRANSLATIONS pass) every time the Settings screen renders
+// (called from applySettings), so the toggle's checked state always matches
+// db.settings.tipsEnabled without a separate restore step.
+function renderTipsSettingsSection(){
+  var wrap=document.getElementById('settings-tips-wrap');
+  if(!wrap)return;
+  var titleLbl=tMap({nl:'Tips',en:'Tips',es:'Consejos',fr:'Astuces',de:'Tipps',ro:'Sfaturi',hu:'Tippek',ru:'Советы',it:'Consigli',pt:'Dicas'});
+  var onLbl=tMap({nl:'Dagelijkse tip tonen',en:'Show daily tip',es:'Mostrar consejo diario',fr:'Afficher l\'astuce du jour',de:'Tägliche Tipps anzeigen',ro:'Arată sfatul zilei',hu:'Napi tipp megjelenítése',ru:'Показывать совет дня',it:'Mostra il consiglio del giorno',pt:'Mostrar dica diária'});
+  var subLbl=tMap({nl:'Een klein, willekeurig hintje bovenaan het beginscherm',en:'A small random hint at the top of the Home screen',es:'Una pequeña sugerencia aleatoria en la parte superior del Inicio',fr:'Une petite astuce aléatoire en haut de l\'Accueil',de:'Ein kleiner, zufälliger Hinweis oben auf der Startseite',ro:'Un mic sfat aleatoriu în partea de sus a ecranului Acasă',hu:'Egy kis véletlenszerű tipp a Kezdőlap tetején',ru:'Небольшая случайная подсказка в верхней части главного экрана',it:'Un piccolo suggerimento casuale in alto nella schermata Home',pt:'Uma pequena dica aleatória no topo do Início'});
+  var viewAllLbl=tMap({nl:'Alle tips bekijken',en:'View all tips',es:'Ver todos los consejos',fr:'Voir toutes les astuces',de:'Alle Tipps ansehen',ro:'Vezi toate sfaturile',hu:'Az összes tipp megtekintése',ru:'Смотреть все советы',it:'Vedi tutti i consigli',pt:'Ver todas as dicas'});
+  var checked=db.settings.tipsEnabled===false?'':'checked';
+  var h='<div class="settings-item">';
+  h+='<div class="settings-item-header" onclick="toggleSettingsItem(this)"><span class="acc-title"><span class="acc-icon"><svg><use href="#ico-info"/></svg></span><span>'+titleLbl+'</span></span><span class="acc-chevron">⌄</span></div>';
+  h+='<div class="settings-item-body">';
+  h+='<div class="toggle-row"><div><div class="toggle-label">'+onLbl+'</div><div class="toggle-sub">'+subLbl+'</div></div><label class="toggle"><input type="checkbox" id="setting-tips-on" onchange="saveSettings()" '+checked+'><span class="toggle-slider"></span></label></div>';
+  h+='<button type="button" class="btn sm" style="margin-top:10px" onclick="openTipsList()">'+viewAllLbl+'</button>';
+  h+='</div></div>';
+  wrap.innerHTML=h;
+}
+// Lets anyone browse the full tip pool at once, rather than waiting for
+// each one to come up as the daily hint - useful right after turning tips
+// on, or for someone who just wants to skim what's there. Same
+// centered-popup pattern as openChangelog just above.
+function openTipsList(){
+  var titleLbl=tMap({nl:'Alle tips',en:'All tips',es:'Todos los consejos',fr:'Toutes les astuces',de:'Alle Tipps',ro:'Toate sfaturile',hu:'Az összes tipp',ru:'Все советы',it:'Tutti i consigli',pt:'Todas as dicas'});
+  var h='<div style="font-size:15px;font-weight:700;margin-bottom:14px">'+titleLbl+'</div>';
+  h+=TIPS.map(function(tip){
+    return '<div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.5;display:flex;gap:8px;align-items:flex-start"><svg width="14" height="14" style="flex-shrink:0;margin-top:2px;color:var(--amber)"><use href="#ico-info"/></svg><span>'+tMap(tip)+'</span></div>';
+  }).join('');
+  h+='<button class="btn primary full" style="margin-top:14px" onclick="closeModals()">'+t('close_btn')+'</button>';
+  showModalCentered(h);
+}
 const UREN_CRIT=2088,VAKANTIE=192;
 function getVakantieUren(){return (db&&db.settings&&db.settings.goalVacationDays)?db.settings.goalVacationDays*8:VAKANTIE;}
 // Official Dutch "onbelaste kilometervergoeding" (tax-free km allowance) per calendar year.
@@ -11846,7 +11947,8 @@ function applySettings(){const s=db.settings;
   if(aupdbtn)aupdbtn.textContent=tMap(UPDATE_LBL_MAP)+' '+CHANGELOG.length;
   applyStoredTheme();
   applyStoredDarkMode();
-  applyWorkRoleVisibility();}
+  applyWorkRoleVisibility();
+  renderTipsSettingsSection();}
 function saveSettings(){if(_suppressSettingsChange)return;const s=db.settings;s.reminderOn=document.getElementById('setting-reminder-on')?.checked||false;s.interval=parseInt(document.getElementById('setting-interval')?.value)||60;var _rtv=document.getElementById('setting-reminder-text')?.value||'';
   var _rtvIsDefault=!_rtv||Object.keys(TRANSLATIONS).some(function(lng){return TRANSLATIONS[lng]&&TRANSLATIONS[lng].reminder_default===_rtv;});
   s.reminderText=_rtvIsDefault?'':_rtv;s.naam=document.getElementById('setting-naam')?.value||'';s.gemeente=document.getElementById('setting-gemeente')?.value||'';s.email=document.getElementById('setting-email')?.value||'';s.tel=document.getElementById('setting-tel')?.value||'';s.geboortedatum=document.getElementById('setting-geboortedatum')?.value||'';s.goalStudies=parseInt(document.getElementById('goal-studies')?.value)||0;s.goalEvang=parseInt(document.getElementById('goal-evang')?.value)||0;s.goalUrenWeek=parseFloat(document.getElementById('goal-uren-week')?.value)||0;s.textSize=s.textSize||'md';s.lang=LANG;s.goalFollowup=parseInt(document.getElementById('goal-followup')?.value)||0;
@@ -11866,6 +11968,8 @@ function saveSettings(){if(_suppressSettingsChange)return;const s=db.settings;s.
   // could never be cleared back to "none" once set.
   var _crEl=document.getElementById('setting-churchrole');
   s.churchRole=_crEl?_crEl.value:(s.churchRole||'');
+  var _tipsEl=document.getElementById('setting-tips-on');
+  if(_tipsEl)s.tipsEnabled=_tipsEl.checked;
   save();startReminderTimer();applyWorkRoleVisibility();try{if(s.reminderOn&&typeof Notification!=='undefined'&&Notification.permission==='default')Notification.requestPermission();}catch(e){}}
 
 // DEMO DATA GENERATOR
@@ -12816,6 +12920,7 @@ function _renderHomeInner(){
   setTimeout(renderHomeAgenda,0);
 
   updateReminderBar();
+  showDailyTipBar();
 }
 
 // VERSE OF THE DAY
