@@ -15908,7 +15908,7 @@ function openEntryDetailModal(entryId){
   var h='<div style="padding:16px">';
   h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">';
   h+='<div style="font-size:16px;font-weight:700">'+titleTxt+'</div>';
-  h+='<button onclick="closeModals()" style="border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px">&times;</button>';
+  h+='<button onclick="closeTopModal()" style="border:none;background:none;font-size:20px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px">&times;</button>';
   h+='</div>';
   h+='<div style="font-size:12px;color:var(--text3);margin-bottom:14px">'+formatDate(e.datum)+(e.tijd?' · '+e.tijd:(e.time?' · '+e.time:''))+'</div>';
   h+=buildEntryDetailInnerHtml(e);
@@ -18175,6 +18175,21 @@ function rpFullYearLabel(yr){
   var prefix=tMap({nl:'Heel jaar',en:'Full year',es:'Año completo',fr:'Année complète',de:'Ganzes Jahr',ro:'Anul întreg',hu:'Egész év',ru:'Весь год',it:'Anno intero',pt:'Ano completo'});
   return prefix+' '+yr;
 }
+// Tapping the header period label ("Sept 2024 – Jan 2026") used to always
+// open the month/year picker below, even while a custom range was active -
+// that picker only offers single months/whole years, with no way to see or
+// redefine the actual from/to dates, so once someone picked a custom range
+// there was no way back into it from the header (the only other entry point,
+// the "Periode" option in the mode dropdown, is a native <select> that won't
+// re-fire onchange when you reselect the option it's already showing). Route
+// the tap to the range editor itself whenever a range is currently active,
+// pre-filled with the dates already in effect, matching how tapping the
+// header in month/year mode already reopens the month/year picker on the
+// currently active month/year.
+function rpHeaderTap(){
+  if(rapportViewMode==='range'){openRapportRangeModal();return;}
+  openRapportMonthPicker();
+}
 function openRapportMonthPicker(){
   var now=new Date();
   var curYear=rapportYear?parseInt(rapportYear,10):now.getFullYear();
@@ -18799,7 +18814,7 @@ function _buildRapportInner(){
        subbar's month pills / year select further up. -->
   <div class="card" style="padding:14px 16px">
     <div style="font-size:11px;color:var(--text3);font-weight:500;margin-bottom:2px">${s.gemeente||'ZDAreformatie'} &middot; ${s.naam||''}</div>
-    <div onclick="openRapportMonthPicker()" style="font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--brand);cursor:pointer;display:inline-block">${maand}</div>
+    <div onclick="rpHeaderTap()" style="font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--brand);cursor:pointer;display:inline-block">${maand}</div>
   </div>
 
   <!-- Stats row — the most important glance-data, one card with plain grid
@@ -24782,6 +24797,22 @@ function closeModals(){
   document.querySelectorAll('.modal-bg').forEach(function(m){m.classList.remove('show');});
   var el=document.getElementById('plan-modal-overlay');
   if(el)el.remove();
+}
+// Dismisses only the topmost showModal()/showModalCentered() overlay
+// (#plan-modal-overlay), leaving any .modal-bg screen underneath (e.g.
+// #modal-cursist-detail / #modal-lid-detail) exactly as it was. Every entry
+// detail popup (openEntryDetailModal) is opened from a tap inside one of
+// those contact/member detail modals, which are a separate DOM layer toggled
+// via the .show class rather than the same overlay element - closeModals()
+// used to strip .show off ALL .modal-bg elements indiscriminately, so
+// closing just this one small popup silently closed the contact/member
+// detail behind it too, dumping the user back at the full list. Falls back
+// to the normal full closeModals() when there's no overlay to remove, so it
+// stays safe to use anywhere closeModals() was used before.
+function closeTopModal(){
+  var el=document.getElementById('plan-modal-overlay');
+  if(el){el.remove();return;}
+  closeModals();
 }
 
 // Settings > "Wat is er bijgewerkt?" - shows the CHANGELOG array (defined
