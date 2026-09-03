@@ -1398,6 +1398,14 @@ input[type="radio"]:checked::after{content:'';position:absolute;inset:3px;border
 
   <!-- DASHBOARD -->
   <div class="screen active" id="s-home">
+    <!-- Daily tip bar lives here, at the very top of Home, instead of down
+         in #reminder-status-bar with the countdown/update/agenda bars. Those
+         are deliberately at the bottom (see comment below) since they're
+         either not urgent or need to wait for something to happen first -
+         but a tip someone would actually want to notice needs to be visible
+         without scrolling past the whole dashboard first, especially on a
+         long Home screen (calendar, follow-up, to-do, prayer list, etc). -->
+    <div id="home-tip-bar-top"></div>
     <div id="home-dashboard"></div>
     <div id="home-leden-followup"></div>
     <!-- Moved back to the bottom - it was pulled to the top of Home for the
@@ -6012,7 +6020,13 @@ function dismissTipBar(){
 // elsewhere in the app for helpful-but-optional notes, so it doesn't get
 // confused with the brand-colored "new version available" bar.
 function showDailyTipBar(){
-  var bar=document.getElementById('reminder-status-bar');
+  // Deliberately its own top-of-Home container (#home-tip-bar-top), not
+  // #reminder-status-bar - that one sits at the very bottom of a screen that
+  // can get quite long (calendar, follow-up, to-do, prayer list...), so a
+  // tip placed there was effectively invisible unless someone scrolled all
+  // the way down. A tip is meant to be seen, so it gets prime real estate
+  // right under the header instead.
+  var bar=document.getElementById('home-tip-bar-top');
   if(!bar||document.getElementById('app-tip-bar'))return;
   if(db.settings.tipsEnabled===false)return;
   // Must run BEFORE the dismissed check below: this is what clears
