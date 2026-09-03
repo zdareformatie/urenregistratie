@@ -16392,7 +16392,15 @@ function saveQuickRepeat(sourceEntryId){
   var newEntry=Object.assign({},src,{
     id:genEntryId(),
     datum:datum.value,
-    time:timeVal,
+    // Logged (already-happened) entries store their time in `tijd`, not
+    // `time` - `time` is what db.planned items use (see plannedEntry just
+    // below). This used to write `time` here too, so Object.assign's spread
+    // of `src` above left whatever `tijd` the SOURCE entry had untouched -
+    // picking a different time in this popup silently kept the old time
+    // everywhere `tijd` is actually read (Logboek, contact history, edit
+    // modal, spreadsheet); only a raw dump of the object would have shown
+    // the new value ever landed anywhere.
+    tijd:timeVal,
     uren:parseFloat(uren&&uren.value)||0,
     opmerking:opm?opm.value:'',
     isManual:true
