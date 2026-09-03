@@ -6015,10 +6015,15 @@ function dismissTipBar(){
   var el=document.getElementById('app-tip-bar');
   if(el)el.remove();
 }
-// Small dismissible bar, same visual pattern as showAppUpdateBar (a
-// reminder-bar in #reminder-status-bar) but in the amber tone already used
-// elsewhere in the app for helpful-but-optional notes, so it doesn't get
-// confused with the brand-colored "new version available" bar.
+// Small dismissible bar, same visual pattern as showAppUpdateBar (solid
+// fill + white text) so it actually reads as prominent - the original
+// light-amber-on-light-amber combo (var(--amber) text on var(--amber-light)
+// background, the same soft tone used for small inline badges elsewhere)
+// had far too little contrast for a full-width bar meant to be noticed, so
+// it went almost unseen even after being moved to the top of Home. Uses its
+// own solid amber (#B8860B, distinct from the blue/green/teal --brand
+// colors so it still doesn't get confused with the "new version" bar) so
+// this stays visually independent of --amber's other, lower-stakes uses.
 function showDailyTipBar(){
   // Deliberately its own top-of-Home container (#home-tip-bar-top), not
   // #reminder-status-bar - that one sits at the very bottom of a screen that
@@ -6040,8 +6045,8 @@ function showDailyTipBar(){
   var d=document.createElement('div');
   d.id='app-tip-bar';
   d.className='reminder-bar';
-  d.style.cssText='background:var(--amber-light);color:var(--amber);padding:8px 14px;border-radius:8px;margin-bottom:6px;font-size:12.5px;line-height:1.4;display:flex;justify-content:space-between;align-items:flex-start;gap:8px';
-  d.innerHTML='<span style="display:flex;align-items:flex-start;gap:6px"><svg width="14" height="14" style="flex-shrink:0;margin-top:1px"><use href="#ico-info"/></svg><span>'+tMap(tip)+'</span></span><button onclick="dismissTipBar()" style="border:none;background:none;color:var(--amber);opacity:.7;cursor:pointer;font-size:16px;flex-shrink:0;line-height:1">&times;</button>';
+  d.style.cssText='background:#B8860B;color:#fff;padding:8px 14px;border-radius:8px;margin-bottom:6px;font-size:12.5px;line-height:1.4;display:flex;justify-content:space-between;align-items:flex-start;gap:8px';
+  d.innerHTML='<span style="display:flex;align-items:flex-start;gap:6px"><svg width="14" height="14" style="flex-shrink:0;margin-top:1px"><use href="#ico-info"/></svg><span>'+tMap(tip)+'</span></span><button onclick="dismissTipBar()" style="border:none;background:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:16px;flex-shrink:0;line-height:1">&times;</button>';
   bar.appendChild(d);
 }
 // Settings > Tips section - rebuilt fresh (via tMap, not the static
